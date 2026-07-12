@@ -2,7 +2,7 @@
   "cli": {"version": ">= 16.0.0", "appVersionSource": "local"},
   "build": {
     "development": {"developmentClient": true, "distribution": "internal"},
-    "preview": {"distribution": "internal", "android": {"buildType": "apk"}, "env": {"EXPO_PUBLIC_SYNC_URL": "ws://192.168.1.83:8787"}},
+    "preview": {"distribution": "internal", "android": {"buildType": "apk"}, "env": {"EXPO_PUBLIC_SYNC_URL": "wss://dees-place-tournament-manager.onrender.com"}},
     "production": {"autoIncrement": true}
   },
   "submit": {"production": {}}
