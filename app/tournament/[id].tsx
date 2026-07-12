@@ -520,7 +520,7 @@ function PlayerModal({visible,tournament,raceSettings,draftTitle,setDraftTitle,d
  const setPinConfirm=(value:string)=>setDirectorPinConfirm(value.replace(/\D/g,'').slice(0,4));
  return <Modal transparent visible={visible} animationType="fade" onRequestClose={close}>
   <View style={[s.modalShade,{backgroundColor:colors.shade}]}><View style={[s.playerWindow,{backgroundColor:colors.panel,borderColor:colors.border}]}>
-   <View style={s.modalTitleBar}><Text style={s.modalTitle}>Players</Text><Text style={s.close}>x</Text></View>
+   <View style={s.modalTitleBar}><Text style={s.modalTitle}>Players</Text><Pressable onPress={close}><Text style={s.close}>x</Text></Pressable></View>
    <View style={s.playerBody}>
     <View style={s.playerHeader}><Text style={s.statusPill}>{tournament.status==='active'?'Tournament Started':'Tournament Not Started'}</Text><Text style={[s.count,{color:colors.text}]}>Player Count: {tournament.players.length} / {tournament.capacity}</Text></View>
     <Text style={[s.label,{color:colors.text}]}>Tournament Title *</Text><TextInput value={draftTitle} onChangeText={setDraftTitle} placeholder="Enter tournament title" placeholderTextColor="#777" style={[s.whiteInput,{backgroundColor:colors.input,color:colors.inputText},!titleIsValid(draftTitle)&&s.requiredInput]}/>
@@ -635,6 +635,7 @@ function ScoresModal({visible,tournament,matches,settings,close}:{visible:boolea
     {view==='menu'?<View style={s.scoreChoiceList}>
      <Button title="Played Match Scores" onPress={()=>setView('played')}/>
      <Button title="Live Scores" variant="secondary" onPress={()=>setView('live')}/>
+     <Button title="Close" variant="secondary" onPress={close}/>
     </View>:<View style={s.scoreList}>
      <ScrollView style={s.scoreRows}>
       {rows.length===0&&<Text style={[s.scoreEmpty,{color:colors.muted}]}>{view==='live'?'No matches are currently ready or being played.':'No completed match scores yet.'}</Text>}
@@ -645,7 +646,7 @@ function ScoresModal({visible,tournament,matches,settings,close}:{visible:boolea
        {match.winnerId&&<Text numberOfLines={1} style={[s.scoreWinner,{color:colors.muted}]}>Winner: {playerName(match.winnerId)}</Text>}
       </View>)}
      </ScrollView>
-     <Button title="Back" variant="secondary" onPress={()=>setView('menu')}/>
+     <View style={s.modalActions}><Button title="Back" variant="secondary" onPress={()=>setView('menu')}/><Button title="Close" variant="secondary" onPress={close}/></View>
     </View>}
    </View>
   </View>
