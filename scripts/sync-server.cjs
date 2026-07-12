@@ -1,5 +1,6 @@
-const { WebSocketServer } = require('ws');
+const ws = require('ws');
 const http = require('http');
+const WebSocketServer = ws.WebSocketServer || ws.Server;
 
 const port = Number(process.env.PORT || process.env.SYNC_PORT || 8787);
 const tournaments = new Map();
