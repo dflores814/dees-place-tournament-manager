@@ -14,7 +14,10 @@
       "backgroundColor": "#000000"
     },
     "android": {
-      "permissions": ["CAMERA"],
+      "permissions": [
+        "CAMERA",
+        "android.permission.CAMERA"
+      ],
       "package": "com.deesplace.tournamentmanager",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -43,11 +46,14 @@
         }
       ]
     ],
-    "experiments": {"typedRoutes": true},
+    "experiments": {
+      "typedRoutes": true
+    },
     "extra": {
       "eas": {
         "projectId": "a54c988e-10b8-4e8d-a544-b8b6dce84a32"
       }
-    }
+    },
+    "owner": "davidflores814s-team"
   }
 }
