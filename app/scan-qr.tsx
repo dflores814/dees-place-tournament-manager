@@ -15,7 +15,9 @@ function tournamentPathFromQr(data:string){
  ];
  const match=patterns.map(pattern=>cleaned.match(pattern)).find(Boolean);
  if(!match?.[1]) return null;
- return {pathname:'/tournament/[id]' as const,params:{id:decodeURIComponent(match[1]),role:'participant'}};
+ const token=cleaned.match(/[?&]join=([^&#]+)/i)?.[1];
+ if(!token) return null;
+ return {pathname:'/tournament/[id]' as const,params:{id:decodeURIComponent(match[1]),role:'participant',joinToken:decodeURIComponent(token)}};
 }
 
 export default function ScanQrScreen(){
@@ -29,7 +31,7 @@ export default function ScanQrScreen(){
   const path=tournamentPathFromQr(data);
   if(!path){
    setScanned(true);
-   setMessage('That QR code is not a Dee\'s Place tournament join code.');
+   setMessage('That QR code is not an active director join code.');
    return;
   }
   setScanned(true);

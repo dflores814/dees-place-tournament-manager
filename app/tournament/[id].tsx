@@ -1,5 +1,5 @@
 import { useEffect,useMemo,useRef,useState } from 'react';
-import { Alert, Image, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { Alert, Image, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions, type GestureResponderEvent } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTournaments } from '@/store/TournamentProvider';
 import { nextReadyMatches, recordWinner, removeResultAndDependents, resolveBracket } from '@/domain/bracket16';
@@ -9,6 +9,7 @@ import { Button } from '@/components/Button';
 import { getTheme, theme } from '@/theme';
 import { openTournamentSync, realtimeConfigured, SyncStatus } from '@/store/realtime';
 import { AppSettings, eightBallSinglesRaceChart, skillLevels, useAppSettings } from '@/store/AppSettingsProvider';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const bracketFont=Platform.select({web:'Barlow Condensed, Arial Narrow, Arial, sans-serif',android:'sans-serif-condensed',default:undefined});
 const bracketColors={
@@ -28,7 +29,7 @@ function shuffle<T>(items:T[]):T[]{return items.map(value=>({value,sort:Math.ran
 function normalize(t:Tournament):Tournament{
  const bracketType=(t.bracketType??'16-double') as BracketType;
  const capacity=t.capacity??16;
- return {...t,bracketType,capacity,scores:t.scores??[],payouts:t.payouts??[]};
+ return {...t,bracketType,capacity,scores:t.scores??[],payouts:t.payouts??[],settings:{...t.settings,joinToken:t.settings.joinToken??newId()}};
 }
 
 function titleIsValid(name:string){
@@ -103,15 +104,36 @@ function withPoint(scores:readonly MatchScore[]|undefined,matchId:string,playerI
  return withScoreDelta(scores,matchId,playerId,1);
 }
 
+function clamp(value:number,min:number,max:number){
+ return Math.max(min,Math.min(max,value));
+}
+
+function touchDistance(event:GestureResponderEvent){
+ const [first,second]=event.nativeEvent.touches;
+ if(!first||!second)return 0;
+ const dx=first.pageX-second.pageX;
+ const dy=first.pageY-second.pageY;
+ return Math.sqrt(dx*dx+dy*dy);
+}
+
+function canvasSize(type:BracketType,castMode:boolean){
+ if(type==='16-single') return {width:580,height:520};
+ if(type==='32-single') return {width:680,height:890};
+ if(type==='32-double') return {width:1560,height:950};
+ return {width:1300,height:castMode?620:760};
+}
+
 export default function TournamentScreen(){
- const {id,role}=useLocalSearchParams<{id:string;role?:string}>();
+ const {id,role,joinToken}=useLocalSearchParams<{id:string;role?:string;joinToken?:string}>();
  const participantMode=role==='participant';
  const {width:viewportWidth,height:viewportHeight}=useWindowDimensions();
+ const insets=useSafeAreaInsets();
  const {items,get,update,syncFromRemote}=useTournaments();
  const {settings}=useAppSettings();
  const colors=getTheme(settings.appearance);
  const found=get(id);
  const t=found?normalize(found):undefined;
+ const syncJoinToken=participantMode?joinToken:t?.settings.joinToken;
  const syncRef=useRef<ReturnType<typeof openTournamentSync>|null>(null);
  const [syncStatus,setSyncStatus]=useState<SyncStatus>(realtimeConfigured()?'connecting':'unconfigured');
  const [playersOpen,setPlayersOpen]=useState(false);
@@ -133,14 +155,25 @@ export default function TournamentScreen(){
  const [draftTitle,setDraftTitle]=useState(t?.name??'');
  const [directorPin,setDirectorPin]=useState(t?.settings.directorPinHash??'');
  const [directorPinConfirm,setDirectorPinConfirm]=useState(t?.settings.directorPinHash??'');
+ const [zoom,setZoom]=useState(1);
+ const [pinching,setPinching]=useState(false);
+ const pinchStartDistance=useRef(0);
+ const pinchStartZoom=useRef(1);
  const resolved=useMemo(()=>t?resolveBracket(t.players,t.results,t.bracketType):[],[t]);
  const ready=useMemo(()=>t?nextReadyMatches(t.players,t.results,t.bracketType):[],[t]);
  useEffect(()=>{
   if(!id)return;
   syncRef.current?.close();
-  syncRef.current=openTournamentSync(id,tournament=>syncFromRemote(tournament),setSyncStatus);
+  syncRef.current=openTournamentSync(id,tournament=>syncFromRemote(tournament),setSyncStatus,syncJoinToken);
   return ()=>syncRef.current?.close();
- },[id,syncFromRemote]);
+ },[id,syncFromRemote,syncJoinToken]);
+ useEffect(()=>{
+  if(found&&!found.settings.joinToken&&t) update(t);
+ },[found,t,update]);
+ useEffect(()=>{
+  if(!t||participantMode||syncStatus!=='connected')return;
+  syncRef.current?.publish(t);
+ },[t?.id,t?.updatedAt,participantMode,syncStatus]);
  if(!t)return <View style={[s.page,{backgroundColor:colors.bg}]}><Text style={[s.title,{color:colors.text}]}>{realtimeConfigured()?'Joining tournament...':'Tournament not found'}</Text><Text style={[s.muted,{color:colors.muted}]}>{realtimeConfigured()?`Sync status: ${syncStatus}`:'Realtime sync is not configured on this build.'}</Text><Button title="Home" onPress={()=>router.replace('/')}/></View>;
  const save=(next:Tournament)=>{
   const stamped={...next,updatedAt:new Date().toISOString()};
@@ -321,9 +354,31 @@ export default function TournamentScreen(){
   const rows=payoutRows(t).map(row=>row.place===place?{...row,[field]:value}:row);
   save({...t,payouts:rows});
  };
+ const canvasBounds=canvasSize(t.bracketType,castMode);
+ const scaledCanvas={width:canvasBounds.width*zoom,height:canvasBounds.height*zoom};
+ const pinchHandlers={
+  onStartShouldSetResponder:(event:GestureResponderEvent)=>event.nativeEvent.touches.length>=2,
+  onMoveShouldSetResponder:(event:GestureResponderEvent)=>event.nativeEvent.touches.length>=2,
+  onResponderGrant:(event:GestureResponderEvent)=>{
+   const distance=touchDistance(event);
+   if(distance>0){
+    setPinching(true);
+    pinchStartDistance.current=distance;
+    pinchStartZoom.current=zoom;
+   }
+  },
+  onResponderMove:(event:GestureResponderEvent)=>{
+   const distance=touchDistance(event);
+   if(distance>0&&pinchStartDistance.current>0){
+    setZoom(clamp(pinchStartZoom.current*(distance/pinchStartDistance.current),0.45,2.5));
+   }
+  },
+  onResponderRelease:()=>setPinching(false),
+  onResponderTerminate:()=>setPinching(false)
+ };
  const bracketViewport={minWidth:viewportWidth,minHeight:Math.max(320,viewportHeight-(castMode?0:44))};
  return <View style={[s.page,{backgroundColor:colors.bg}]}>
-  {!castMode&&<View style={[s.toolbar,{backgroundColor:settings.appearance==='light'?'#f3f8ef':'#efefef'}]}>
+  {!castMode&&<View style={[s.toolbar,{backgroundColor:settings.appearance==='light'?'#f3f8ef':'#efefef',paddingTop:insets.top+10}]}>
    <Button title="Home" variant="secondary" onPress={()=>router.replace('/')}/>
    {!participantMode&&<Button title="Players" variant="secondary" onPress={()=>openPlayers()}/>}
    {!participantMode&&<Button title="Start" onPress={startTournament} disabled={t.status==='complete'}/>}
@@ -335,9 +390,10 @@ export default function TournamentScreen(){
    {participantMode&&<Text style={s.participantBadge}>Participant mode</Text>}
    <Text style={[s.syncBadge,{color:settings.appearance==='light'?colors.text:'#111'}]}>Sync: {syncStatus}</Text>
   </View>}
-  <ScrollView style={s.scroller} contentContainerStyle={bracketViewport} minimumZoomScale={0.45} maximumZoomScale={2.5} centerContent>
-   <ScrollView horizontal contentContainerStyle={[s.horizontalScroller,bracketViewport]}>
-   <View style={[s.canvas,t.bracketType==='16-single'&&s.single16Canvas,t.bracketType==='32-single'&&s.single32Canvas,t.bracketType==='16-double'&&s.doubleCanvas,t.bracketType==='32-double'&&s.double32Canvas,castMode&&s.castCanvas]}>
+  <ScrollView style={s.scroller} contentContainerStyle={[bracketViewport,s.bracketViewport]} scrollEnabled={!pinching} centerContent>
+   <ScrollView horizontal scrollEnabled={!pinching} contentContainerStyle={[s.horizontalScroller,bracketViewport]}>
+   <View {...pinchHandlers} style={[s.zoomSurface,scaledCanvas]}>
+   <View style={[s.canvas,t.bracketType==='16-single'&&s.single16Canvas,t.bracketType==='32-single'&&s.single32Canvas,t.bracketType==='16-double'&&s.doubleCanvas,t.bracketType==='32-double'&&s.double32Canvas,castMode&&s.castCanvas,{transform:[{translateX:canvasBounds.width*(zoom-1)/2},{translateY:canvasBounds.height*(zoom-1)/2},{scale:zoom}]}]}>
     {!castMode&&<Image source={require('../../assets/dees-place-logo.png')} resizeMode="contain" style={s.bracketLogo}/>}
     {!castMode&&<View style={s.infoPanel}>
      <InfoRow label="Title:" value={titleIsValid(t.name)?t.name:'Title Required'}/>
@@ -347,7 +403,8 @@ export default function TournamentScreen(){
     </View>}
     {!castMode&&<View style={s.statusPanel}><Text style={s.statusText}>{t.status==='active'?'Tournament Started':t.status==='complete'?'Tournament Complete':'Tourney Not Started'}</Text></View>}
     {!castMode&&<View style={s.readyPanel}><Text style={s.statusText}>Playable Matches:</Text><Text style={s.readyCount}>{ready.length}</Text></View>}
-    <BracketCanvas tournament={t} matches={resolved} readyIds={new Set(ready.map(match=>match.id))} onWinner={chooseWinner} onEdit={participantMode?()=>{}:editMatch} onBye={seed=>openPlayers(seed)} director={!participantMode} readyColor={settings.readyMatchColor} playerDisplay={settings.playerDisplay} settings={settings} presentation={castMode}/>
+   <BracketCanvas tournament={t} matches={resolved} readyIds={new Set(ready.map(match=>match.id))} onWinner={chooseWinner} onEdit={participantMode?()=>{}:editMatch} onBye={seed=>openPlayers(seed)} director={!participantMode} readyColor={settings.readyMatchColor} playerDisplay={settings.playerDisplay} settings={settings} presentation={castMode}/>
+   </View>
    </View>
    </ScrollView>
   </ScrollView>
@@ -514,9 +571,9 @@ function WinnerModal({visible,match,players,selectedId,setSelectedId,race,scores
 function QrModal({tournament,syncStatus,close}:{tournament:Tournament;syncStatus:SyncStatus;close:()=>void}){
  const {settings}=useAppSettings();
  const colors=getTheme(settings.appearance);
- const joinLink=`deesplacetm:///tournament/${tournament.id}?role=participant`;
+ const joinLink=`deesplacetm:///tournament/${tournament.id}?role=participant&join=${encodeURIComponent(tournament.settings.joinToken??'')}`;
  const qrSource=`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(joinLink)}`;
- return <View style={[s.modalShade,{backgroundColor:colors.shade}]}><View style={[s.qrWindow,{backgroundColor:colors.panel,borderColor:colors.border}]}><Text style={[s.qrTitle,{color:colors.text}]}>Join Tournament</Text><Image source={{uri:qrSource}} style={s.qrImage}/><Text style={s.qrCode}>{tournament.id.slice(0,10).toUpperCase()}</Text><Text style={[s.muted,{color:colors.muted}]}>Scan with a device that has the app installed. Players open in participant mode and can submit match winners.</Text><Text style={syncStatus==='connected'?s.syncReady:s.syncWarning}>{syncStatus==='connected'?'Realtime sync connected.':'Realtime sync is not connected. Set EXPO_PUBLIC_SYNC_URL to enable live updates.'}</Text><Button title="Close" variant="secondary" onPress={close}/></View></View>;
+ return <View style={[s.modalShade,{backgroundColor:colors.shade}]}><View style={[s.qrWindow,{backgroundColor:colors.panel,borderColor:colors.border}]}><Text style={[s.qrTitle,{color:colors.text}]}>Join Tournament</Text><Image source={{uri:qrSource}} style={s.qrImage}/><Text style={s.qrCode}>{tournament.id.slice(0,10).toUpperCase()}</Text><Text style={[s.muted,{color:colors.muted}]}>Only this director QR can join this tournament. Players open in participant mode and can submit match winners.</Text><Text style={syncStatus==='connected'?s.syncReady:s.syncWarning}>{syncStatus==='connected'?'Realtime sync connected.':'Realtime sync is not connected. Set EXPO_PUBLIC_SYNC_URL to enable live updates.'}</Text><Button title="Close" variant="secondary" onPress={close}/></View></View>;
 }
 
 type ReadyColor='red'|'green'|'gold';
@@ -779,27 +836,29 @@ function BracketBox({tournament,match,ready,onWinner,onEdit,onBye,director,ready
 
 const s=StyleSheet.create({
  page:{flex:1,backgroundColor:'#000'},
- toolbar:{minHeight:26,backgroundColor:'#efefef',flexDirection:'row',alignItems:'center',gap:4,padding:2,flexWrap:'wrap'},
+ toolbar:{minHeight:26,backgroundColor:'#efefef',flexDirection:'row',alignItems:'center',gap:8,paddingHorizontal:6,paddingBottom:10,flexWrap:'wrap',borderBottomColor:'#c9d1c6',borderBottomWidth:1},
  castBar:{minHeight:38,backgroundColor:'#061206',borderBottomColor:theme.green,borderBottomWidth:1,flexDirection:'row',alignItems:'center',justifyContent:'space-between',paddingHorizontal:10,gap:10},
  castTitle:{color:'#fff',fontSize:16,fontWeight:'900',flex:1},
  participantBadge:{backgroundColor:'#061206',borderColor:theme.green,borderWidth:1,color:'#fff',fontSize:12,fontWeight:'900',paddingHorizontal:10,paddingVertical:7},
  syncBadge:{color:'#111',fontSize:12,fontWeight:'800',paddingHorizontal:8},
  scroller:{flex:1},
+ bracketViewport:{paddingTop:18},
  horizontalScroller:{alignItems:'flex-start'},
+ zoomSurface:{backgroundColor:'#000',position:'relative'},
  canvas:{width:1320,minHeight:760,backgroundColor:'#000',position:'relative',paddingTop:92},
- single16Canvas:{width:580,minHeight:390,paddingTop:8},
- single32Canvas:{width:680,minHeight:760,paddingTop:8},
- doubleCanvas:{width:1300,minHeight:620,paddingTop:92},
- double32Canvas:{width:1560,minHeight:950,paddingTop:92},
+ single16Canvas:{width:580,minHeight:520,paddingTop:132},
+ single32Canvas:{width:680,minHeight:890,paddingTop:132},
+ doubleCanvas:{width:1300,minHeight:660,paddingTop:120},
+ double32Canvas:{width:1560,minHeight:980,paddingTop:120},
  castCanvas:{paddingTop:8,minHeight:620},
- bracketLogo:{position:'absolute',top:4,left:12,width:126,height:82},
+ bracketLogo:{position:'absolute',top:28,left:12,width:126,height:82},
  title:{color:'#fff',fontSize:24,fontWeight:'900',margin:18},
- infoPanel:{position:'absolute',top:8,left:160,width:270,backgroundColor:'#061206',borderColor:theme.green,borderWidth:1,borderRadius:10,padding:6,gap:3},
+ infoPanel:{position:'absolute',top:30,left:160,width:270,backgroundColor:'#061206',borderColor:theme.green,borderWidth:1,borderRadius:10,padding:6,gap:3},
  infoRow:{flexDirection:'row',alignItems:'center',gap:5},
  infoLabel:{color:'#fff',fontSize:10,width:75},
  infoValue:{backgroundColor:'#fff',color:'#000',minHeight:14,flex:1,fontSize:10,paddingHorizontal:3},
- statusPanel:{position:'absolute',top:8,left:612,width:126,height:30,backgroundColor:'#061206',borderColor:theme.green,borderWidth:1,borderRadius:4,alignItems:'center',justifyContent:'center'},
- readyPanel:{position:'absolute',top:42,left:612,width:126,height:32,backgroundColor:'#061206',borderColor:theme.green,borderWidth:1,borderRadius:4,alignItems:'center',justifyContent:'space-around',flexDirection:'row',paddingHorizontal:8},
+ statusPanel:{position:'absolute',top:30,left:612,width:126,height:30,backgroundColor:'#061206',borderColor:theme.green,borderWidth:1,borderRadius:4,alignItems:'center',justifyContent:'center'},
+ readyPanel:{position:'absolute',top:64,left:612,width:126,height:32,backgroundColor:'#061206',borderColor:theme.green,borderWidth:1,borderRadius:4,alignItems:'center',justifyContent:'space-around',flexDirection:'row',paddingHorizontal:8},
  statusText:{color:'#fff',fontSize:10},
  readyCount:{backgroundColor:'#f00',color:'#fff',fontWeight:'900',fontSize:18,borderRadius:5,paddingHorizontal:7},
  bracketArea:{paddingLeft:0,paddingTop:8},

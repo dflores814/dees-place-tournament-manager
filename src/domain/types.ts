@@ -37,6 +37,7 @@ export interface TournamentSettings {
   rules: string;
   payoutPreset: 'winner-take-all' | '70-30' | '60-30-10';
   directorPinHash?: string;
+  joinToken?: string;
 }
 
 export interface Tournament {

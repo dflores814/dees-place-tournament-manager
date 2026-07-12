@@ -3,8 +3,8 @@ import { Tournament } from '@/domain/types';
 export type SyncStatus = 'unconfigured' | 'connecting' | 'connected' | 'offline';
 
 type SyncEnvelope =
- | {type:'subscribe';tournamentId:string}
- | {type:'publish';tournamentId:string;tournament:Tournament}
+ | {type:'subscribe';tournamentId:string;joinToken?:string}
+ | {type:'publish';tournamentId:string;tournament:Tournament;joinToken?:string}
  | {type:'snapshot'|'update'|'tournament';tournamentId?:string;tournament:Tournament};
 
 export function syncUrl(){
@@ -15,7 +15,7 @@ export function realtimeConfigured(){
  return syncUrl().length>0;
 }
 
-export function openTournamentSync(tournamentId:string,onTournament:(tournament:Tournament)=>void,onStatus:(status:SyncStatus)=>void){
+export function openTournamentSync(tournamentId:string,onTournament:(tournament:Tournament)=>void,onStatus:(status:SyncStatus)=>void,joinToken?:string){
  const url=syncUrl();
  if(!url){onStatus('unconfigured');return {publish:()=>{},close:()=>{}};}
  let socket:WebSocket|null=null;
@@ -31,7 +31,7 @@ export function openTournamentSync(tournamentId:string,onTournament:(tournament:
   socket.onopen=()=>{
    open=true;
    onStatus('connected');
-   send({type:'subscribe',tournamentId});
+   send({type:'subscribe',tournamentId,joinToken});
    while(queue.length) socket?.send(JSON.stringify(queue.shift()));
   };
   socket.onmessage=event=>{
@@ -46,7 +46,7 @@ export function openTournamentSync(tournamentId:string,onTournament:(tournament:
   onStatus('offline');
  }
  return {
-  publish:(tournament:Tournament)=>send({type:'publish',tournamentId,tournament}),
+  publish:(tournament:Tournament)=>send({type:'publish',tournamentId,tournament,joinToken:tournament.settings.joinToken}),
   close:()=>{open=false;socket?.close();}
  };
 }
