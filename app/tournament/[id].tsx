@@ -264,11 +264,20 @@ export default function TournamentScreen(){
   setWinnerPickId(match.winnerId??match.playerIds.find(Boolean)??null);
  };
  const winnerMatch=resolved.find(match=>match.id===winnerMatchId);
- const confirmWinner=()=>{
-  if(!winnerMatch || !winnerPickId)return;
-  if(participantMode&&(!winnerMatch.ready||winnerMatch.complete))return;
-  const baseResults=winnerMatch.complete?removeResultAndDependents(t.results,winnerMatch.id,t.bracketType):t.results;
-  save({...t,status:'active',results:recordWinner(baseResults,winnerMatch.id,winnerPickId)});
+const confirmWinner=()=>{
+ if(!winnerMatch || !winnerPickId)return;
+ if(participantMode&&(!winnerMatch.ready||winnerMatch.complete))return;
+ const playerA=t.players.find(player=>player.id===winnerMatch.playerIds[0]);
+ const playerB=t.players.find(player=>player.id===winnerMatch.playerIds[1]);
+ const race=raceTargets(playerA,playerB,settings,t,winnerMatch.side);
+ if(race){
+  const winnerIndex=winnerMatch.playerIds[0]===winnerPickId?0:1;
+  const winnerScore=scoreFor(t.scores,winnerMatch.id)[winnerPickId]??0;
+  const target=race.targets[winnerIndex]??race.targets[0];
+  if(winnerScore<target){Alert.alert('Race score required',`The selected winner must reach ${target} points before moving on.`);return;}
+ }
+ const baseResults=winnerMatch.complete?removeResultAndDependents(t.results,winnerMatch.id,t.bracketType):t.results;
+ save({...t,status:'active',results:recordWinner(baseResults,winnerMatch.id,winnerPickId)});
   setWinnerMatchId(null);
   setWinnerPickId(null);
  };
@@ -287,37 +296,23 @@ export default function TournamentScreen(){
   if(!match || match.complete){setPendingPoint(null);return;}
   const playerA=t.players.find(player=>player.id===match.playerIds[0]);
   const playerB=t.players.find(player=>player.id===match.playerIds[1]);
-  const race=raceTargets(playerA,playerB,settings,t,match.side);
-  if(!race){setPendingPoint(null);return;}
-  const playerIndex=match.playerIds[0]===pendingPoint.playerId?0:1;
-  const nextScores=withPoint(t.scores,match.id,pendingPoint.playerId);
-  const updatedScore=scoreFor(nextScores,match.id)[pendingPoint.playerId]??0;
-  const winnerReached=updatedScore>=race.targets[playerIndex];
-  save({...t,status:'active',scores:nextScores,results:winnerReached?recordWinner(t.results,match.id,pendingPoint.playerId):t.results});
-  if(winnerReached){
-   setWinnerMatchId(null);
-   setWinnerPickId(null);
-  }
-  setPendingPoint(null);
- };
+ const race=raceTargets(playerA,playerB,settings,t,match.side);
+ if(!race){setPendingPoint(null);return;}
+ const nextScores=withPoint(t.scores,match.id,pendingPoint.playerId);
+ save({...t,status:'active',scores:nextScores});
+ setPendingPoint(null);
+};
  const changeScore=(matchId:string,playerId:string,delta:number)=>{
   if(participantMode)return;
   const match=resolved.find(item=>item.id===matchId);
   if(!match)return;
   const playerA=t.players.find(player=>player.id===match.playerIds[0]);
   const playerB=t.players.find(player=>player.id===match.playerIds[1]);
-  const race=raceTargets(playerA,playerB,settings,t,match.side);
-  if(!race)return;
-  const playerIndex=match.playerIds[0]===playerId?0:1;
-  const nextScores=withScoreDelta(t.scores,matchId,playerId,delta);
-  const updatedScore=scoreFor(nextScores,matchId)[playerId]??0;
-  const shouldRecordWinner=!match.complete&&delta>0&&updatedScore>=race.targets[playerIndex];
-  save({...t,status:'active',scores:nextScores,results:shouldRecordWinner?recordWinner(t.results,matchId,playerId):t.results});
-  if(shouldRecordWinner){
-   setWinnerMatchId(null);
-   setWinnerPickId(null);
-  }
- };
+ const race=raceTargets(playerA,playerB,settings,t,match.side);
+ if(!race)return;
+ const nextScores=withScoreDelta(t.scores,matchId,playerId,delta);
+ save({...t,status:'active',scores:nextScores});
+};
  const editMatch=(match:ResolvedMatch)=>{
   chooseWinner(match);
  };
@@ -560,7 +555,12 @@ function CastDeviceModal({visible,status,search,useThisScreen,close}:{visible:bo
 function WinnerModal({visible,match,players,selectedId,setSelectedId,race,scores,director,onPoint,onScoreChange,confirm,close}:{visible:boolean;match:ResolvedMatch|undefined;players:readonly Player[];selectedId:string|null;setSelectedId:(id:string)=>void;race:{label:string;targets:readonly [number,number]}|null;scores:Record<string,number>;director:boolean;onPoint:(matchId:string,playerId:string)=>void;onScoreChange:(matchId:string,playerId:string,delta:number)=>void;confirm:()=>void;close:()=>void}){
  const {settings}=useAppSettings();
  const colors=getTheme(settings.appearance);
+ const [scoreOpen,setScoreOpen]=useState(false);
  const contenders=(match?.playerIds??[]).map(id=>players.find(player=>player.id===id)).filter(Boolean) as Player[];
+ const selectedIndex=match?.playerIds[0]===selectedId?0:match?.playerIds[1]===selectedId?1:-1;
+ const selectedScore=selectedId?scores[selectedId]??0:0;
+ const selectedTarget=selectedIndex>=0?race?.targets[selectedIndex]??0:0;
+ const canConfirm=!!selectedId&&(!race||selectedScore>=selectedTarget);
  return <Modal transparent visible={visible} animationType="fade" onRequestClose={close}>
   <View style={[s.modalShade,{backgroundColor:colors.shade}]}>
    <View style={[s.winnerWindow,{backgroundColor:colors.panel,borderColor:colors.border}]}>
@@ -569,11 +569,13 @@ function WinnerModal({visible,match,players,selectedId,setSelectedId,race,scores
     {race&&<Text style={s.raceLabel}>{race.label}</Text>}
     {contenders.map((player,index)=><View key={player.id}>
      <Pressable onPress={()=>setSelectedId(player.id)} style={[s.winnerChoice,{backgroundColor:colors.panel,borderColor:colors.border},selectedId===player.id&&s.winnerChoiceSelected]}><Text style={[s.crown,{color:selectedId===player.id?'#fff':colors.text}]}>♔</Text><Text style={[s.winnerChoiceText,{color:colors.text},selectedId===player.id&&s.winnerChoiceSelectedText]}>{player.name}</Text><Text style={[s.scoreText,{color:colors.text},selectedId===player.id&&s.winnerChoiceSelectedText]}>{scores[player.id]??0}/{race?.targets[index]??'-'}</Text></Pressable>
-     {race&&match&&!match.complete&&!director&&<Button title="ADD POINT" variant="secondary" onPress={()=>onPoint(match.id,player.id)} style={s.addPointButton}/>}
-     {race&&match&&director&&<View style={s.scoreEditRow}><Pressable onPress={()=>onScoreChange(match.id,player.id,-1)} style={s.scoreEditButton}><Text style={s.scoreEditText}>-</Text></Pressable><Text style={s.scoreEditLabel}>Change Score</Text><Pressable onPress={()=>onScoreChange(match.id,player.id,1)} style={s.scoreEditButton}><Text style={s.scoreEditText}>+</Text></Pressable></View>}
+     {race&&match&&scoreOpen&&director&&<View style={s.scoreEditRow}><Pressable onPress={()=>onScoreChange(match.id,player.id,-1)} style={s.scoreEditButton}><Text style={s.scoreEditText}>-</Text></Pressable><Text style={s.scoreEditLabel}>Change Score</Text><Pressable onPress={()=>onScoreChange(match.id,player.id,1)} style={s.scoreEditButton}><Text style={s.scoreEditText}>+</Text></Pressable></View>}
+     {race&&match&&!match.complete&&scoreOpen&&!director&&<Button title="ADD POINT" variant="secondary" onPress={()=>onPoint(match.id,player.id)} style={s.addPointButton}/>}
      {index===0&&<Text style={[s.vs,{color:colors.muted}]}>VS</Text>}
     </View>)}
-    <Button title="CONFIRM" onPress={confirm} disabled={!selectedId} style={s.confirmWinner}/>
+    {race&&match&&!match.complete&&<Button title={scoreOpen?'HIDE SCORE':'CHANGE SCORE'} variant="secondary" onPress={()=>setScoreOpen(value=>!value)} style={s.changeScoreButton}/>}
+    {race&&selectedId&&selectedTarget>0&&selectedScore<selectedTarget&&<Text style={[s.winnerHelp,{color:colors.muted}]}>Selected winner needs {selectedTarget-selectedScore} more point{selectedTarget-selectedScore===1?'':'s'}.</Text>}
+    <Button title="CONFIRM" onPress={confirm} disabled={!canConfirm} style={s.confirmWinner}/>
    </View>
   </View>
  </Modal>;
@@ -977,6 +979,7 @@ const s=StyleSheet.create({
  scoreText:{position:'absolute',right:10,color:'#fff',fontSize:13,fontWeight:'900'},
  winnerChoiceSelectedText:{color:'#071207'},
  addPointButton:{minHeight:30,borderRadius:0,marginTop:4},
+ changeScoreButton:{minHeight:34,borderRadius:0,marginTop:4},
  scoreEditRow:{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:8,marginTop:5},
  scoreEditButton:{width:30,height:28,borderRadius:14,backgroundColor:theme.green,alignItems:'center',justifyContent:'center',borderColor:'#fff',borderWidth:1},
  scoreEditText:{color:'#fff',fontSize:18,fontWeight:'900',lineHeight:20},
