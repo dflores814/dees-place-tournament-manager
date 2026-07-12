@@ -6,7 +6,6 @@
     "orientation": "default",
     "scheme": "deesplacetm",
     "userInterfaceStyle": "dark",
-    "newArchEnabled": true,
     "icon": "./assets/icon.png",
     "splash": {
       "image": "./assets/splash.png",
@@ -14,7 +13,6 @@
       "backgroundColor": "#000000"
     },
     "android": {
-      "jsEngine": "jsc",
       "permissions": [
         "CAMERA",
         "android.permission.CAMERA"
