@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Dee's Place Tournament Manager",
-    "slug": "dees-place-tournament-manager",
+    "slug": "tournament-manager",
     "version": "1.0.1",
     "orientation": "default",
     "scheme": "deesplacetm",
