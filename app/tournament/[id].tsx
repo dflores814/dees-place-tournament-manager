@@ -156,10 +156,10 @@ function touchDistance(event:GestureResponderEvent){
 }
 
 function canvasSize(type:BracketType,castMode:boolean){
- if(type==='16-single') return {width:580,height:520};
- if(type==='32-single') return {width:680,height:890};
- if(type==='16-double') return {width:960,height:castMode?820:920};
- if(type==='32-double') return {width:1080,height:castMode?1480:1520};
+ if(type==='16-single') return {width:580,height:560};
+ if(type==='32-single') return {width:680,height:940};
+ if(type==='16-double') return {width:960,height:castMode?820:1020};
+ if(type==='32-double') return {width:1080,height:castMode?1480:1590};
  return {width:1300,height:castMode?620:760};
 }
 
@@ -905,20 +905,20 @@ const s=StyleSheet.create({
  bracketViewport:{paddingTop:18},
  horizontalScroller:{alignItems:'flex-start'},
  zoomSurface:{backgroundColor:'#000',position:'relative'},
- canvas:{width:1320,minHeight:760,backgroundColor:'#000',position:'relative',paddingTop:92},
- single16Canvas:{width:580,minHeight:520,paddingTop:132},
- single32Canvas:{width:680,minHeight:890,paddingTop:132},
- doubleCanvas:{width:960,minHeight:960,paddingTop:120},
- double32Canvas:{width:1080,minHeight:1520,paddingTop:120},
+ canvas:{width:1320,minHeight:760,backgroundColor:'#000',position:'relative',paddingTop:150},
+ single16Canvas:{width:580,minHeight:560,paddingTop:180},
+ single32Canvas:{width:680,minHeight:940,paddingTop:180},
+ doubleCanvas:{width:960,minHeight:1020,paddingTop:190},
+ double32Canvas:{width:1080,minHeight:1590,paddingTop:190},
  castCanvas:{paddingTop:8,minHeight:620},
- bracketLogo:{position:'absolute',top:28,left:12,width:126,height:82},
+ bracketLogo:{position:'absolute',top:60,left:12,width:126,height:82},
  title:{color:'#fff',fontSize:24,fontWeight:'900',margin:18},
- infoPanel:{position:'absolute',top:30,left:160,width:270,backgroundColor:'#061206',borderColor:theme.green,borderWidth:1,borderRadius:10,padding:6,gap:3},
+ infoPanel:{position:'absolute',top:62,left:160,width:270,backgroundColor:'#061206',borderColor:theme.green,borderWidth:1,borderRadius:10,padding:6,gap:3},
  infoRow:{flexDirection:'row',alignItems:'center',gap:5},
  infoLabel:{color:'#fff',fontSize:10,width:75},
  infoValue:{backgroundColor:'#fff',color:'#000',minHeight:14,flex:1,fontSize:10,paddingHorizontal:3},
- statusPanel:{position:'absolute',top:30,left:612,width:126,height:30,backgroundColor:'#061206',borderColor:theme.green,borderWidth:1,borderRadius:4,alignItems:'center',justifyContent:'center'},
- readyPanel:{position:'absolute',top:64,left:612,width:126,height:32,backgroundColor:'#061206',borderColor:theme.green,borderWidth:1,borderRadius:4,alignItems:'center',justifyContent:'space-around',flexDirection:'row',paddingHorizontal:8},
+ statusPanel:{position:'absolute',top:62,left:612,width:126,height:30,backgroundColor:'#061206',borderColor:theme.green,borderWidth:1,borderRadius:4,alignItems:'center',justifyContent:'center'},
+ readyPanel:{position:'absolute',top:100,left:612,width:126,height:32,backgroundColor:'#061206',borderColor:theme.green,borderWidth:1,borderRadius:4,alignItems:'center',justifyContent:'space-around',flexDirection:'row',paddingHorizontal:8},
  statusText:{color:'#fff',fontSize:10},
  readyCount:{backgroundColor:'#f00',color:'#fff',fontWeight:'900',fontSize:18,borderRadius:5,paddingHorizontal:7},
  bracketArea:{paddingLeft:0,paddingTop:8},
