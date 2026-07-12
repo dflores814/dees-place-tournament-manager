@@ -467,7 +467,7 @@ const confirmWinner=()=>{
    {!participantMode&&<Button title="Save" variant="secondary" onPress={()=>save(t)}/>}
    {!participantMode&&<Button title="Payout" variant="secondary" onPress={()=>setPayoutOpen(true)}/>}
    <Button title="Scores" variant="secondary" onPress={()=>setScoresOpen(true)}/>
-   {shouldShowSkillLevels(raceSettings)&&<Button title="Skills" variant="secondary" onPress={()=>setSkillsOpen(true)}/>}
+   <Button title="Skills" variant="secondary" onPress={()=>setSkillsOpen(true)}/>
    {!participantMode&&<Button title="QR" variant="secondary" onPress={()=>setQrOpen(true)}/>}
    {!participantMode&&<Button title="Cast Screen" variant="secondary" onPress={openCastPicker}/>}
    {!participantMode&&<Button title="End Tournament" variant="danger" onPress={endTournament}/>}
