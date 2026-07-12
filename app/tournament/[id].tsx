@@ -211,6 +211,7 @@ export default function TournamentScreen(){
  const [playersOpen,setPlayersOpen]=useState(false);
  const [payoutOpen,setPayoutOpen]=useState(false);
  const [scoresOpen,setScoresOpen]=useState(false);
+ const [skillsOpen,setSkillsOpen]=useState(false);
  const [qrOpen,setQrOpen]=useState(false);
  const [startOpen,setStartOpen]=useState(false);
  const [startBlocker,setStartBlocker]=useState<string|null>(null);
@@ -466,6 +467,7 @@ const confirmWinner=()=>{
    {!participantMode&&<Button title="Save" variant="secondary" onPress={()=>save(t)}/>}
    {!participantMode&&<Button title="Payout" variant="secondary" onPress={()=>setPayoutOpen(true)}/>}
    <Button title="Scores" variant="secondary" onPress={()=>setScoresOpen(true)}/>
+   {shouldShowSkillLevels(raceSettings)&&<Button title="Skills" variant="secondary" onPress={()=>setSkillsOpen(true)}/>}
    {!participantMode&&<Button title="QR" variant="secondary" onPress={()=>setQrOpen(true)}/>}
    {!participantMode&&<Button title="Cast Screen" variant="secondary" onPress={openCastPicker}/>}
    {!participantMode&&<Button title="End Tournament" variant="danger" onPress={endTournament}/>}
@@ -496,6 +498,7 @@ const confirmWinner=()=>{
   <EndTournamentModal visible={endOpen} confirm={confirmEndTournament} close={()=>setEndOpen(false)}/>
   <PayoutModal visible={payoutOpen} rows={payoutRows(t)} onChange={updatePayout} close={()=>setPayoutOpen(false)}/>
   <ScoresModal visible={scoresOpen} tournament={t} matches={resolved} settings={raceSettings} close={()=>setScoresOpen(false)}/>
+  <SkillLevelsModal visible={skillsOpen} tournament={t} close={()=>setSkillsOpen(false)}/>
   <CastDeviceModal visible={castPickerOpen} status={castStatus} search={searchCastDevices} useThisScreen={startCast} close={()=>setCastPickerOpen(false)}/>
   <WinnerModal visible={!!winnerMatch} match={winnerMatch} players={t.players} selectedId={winnerPickId} setSelectedId={setWinnerPickId} race={winnerMatch?raceTargets(t.players.find(player=>player.id===winnerMatch.playerIds[0]),t.players.find(player=>player.id===winnerMatch.playerIds[1]),raceSettings,t,winnerMatch.side):null} scores={winnerMatch?scoreFor(t.scores,winnerMatch.id):{}} director={!participantMode} onPoint={requestPoint} onScoreChange={changeScore} confirm={confirmWinner} close={()=>{setWinnerMatchId(null);setWinnerPickId(null);}}/>
   <ConfirmPointModal visible={!!pendingPoint} player={t.players.find(player=>player.id===pendingPoint?.playerId)} confirm={confirmPoint} close={()=>setPendingPoint(null)}/>
@@ -649,6 +652,27 @@ function ScoresModal({visible,tournament,matches,settings,close}:{visible:boolea
  </Modal>;
 }
 
+function SkillLevelsModal({visible,tournament,close}:{visible:boolean;tournament:Tournament;close:()=>void}){
+ const {settings}=useAppSettings();
+ const colors=getTheme(settings.appearance);
+ const players=[...tournament.players].sort((a,b)=>a.seed-b.seed);
+ return <Modal transparent visible={visible} animationType="fade" onRequestClose={close}>
+  <View style={[s.modalShade,{backgroundColor:colors.shade}]}>
+   <View style={[s.skillsWindow,{backgroundColor:colors.panel,borderColor:colors.green}]}>
+    <View style={s.payoutHeader}><Text style={[s.payoutTitle,{color:colors.text}]}>Player Skill Levels</Text><Pressable onPress={close}><Text style={[s.winnerClose,{color:colors.text}]}>x</Text></Pressable></View>
+    <ScrollView style={s.skillsRows} contentContainerStyle={s.skillsList}>
+     {players.length===0&&<Text style={[s.scoreEmpty,{color:colors.muted}]}>No players have been added yet.</Text>}
+     {players.map(player=><View key={player.id} style={[s.skillLevelRow,{borderColor:colors.border,backgroundColor:colors.panel2}]}>
+      <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={[s.skillPlayerName,{color:colors.text}]}>{player.seed}. {player.name}</Text>
+      <Text style={s.skillBadge}>SL {normalizedSkillLevel(player.skillLevel)}</Text>
+     </View>)}
+    </ScrollView>
+    <View style={s.modalActions}><Button title="Close" variant="secondary" onPress={close}/></View>
+   </View>
+  </View>
+ </Modal>;
+}
+
 function ConfirmPointModal({visible,player,confirm,close}:{visible:boolean;player:Player|undefined;confirm:()=>void;close:()=>void}){
  const {settings}=useAppSettings();
  const colors=getTheme(settings.appearance);
@@ -728,11 +752,6 @@ function fittedNameStyle(label:string){
  if(length>14)return s.slotTextMedium;
  return null;
 }
-function compactRaceLabel(label:string){
- const sideRace=label.match(/^Race to (\d+)/);
- return sideRace?.[1]?`R${sideRace[1]}`:label.replace('Race ','');
-}
-
 function BracketCanvas({tournament,matches,readyIds,onWinner,onEdit,onBye,director,readyColor,playerDisplay,settings,presentation=false}:{tournament:Tournament;matches:ResolvedMatch[];readyIds:Set<string>;onWinner:(match:ResolvedMatch)=>void;onEdit:(match:ResolvedMatch)=>void;onBye:(seed:number)=>void;director:boolean;readyColor:ReadyColor;playerDisplay:PlayerDisplay;settings:AppSettings;presentation?:boolean}){
  if(tournament.bracketType==='16-single') return <SingleElim16Canvas tournament={tournament} matches={matches} readyIds={readyIds} onWinner={onWinner} onEdit={onEdit} onBye={onBye} director={director} readyColor={readyColor} playerDisplay={playerDisplay} settings={settings} presentation={presentation}/>;
  if(tournament.bracketType==='32-single') return <SingleElim32Canvas tournament={tournament} matches={matches} readyIds={readyIds} onWinner={onWinner} onEdit={onEdit} onBye={onBye} director={director} readyColor={readyColor} playerDisplay={playerDisplay} settings={settings} presentation={presentation}/>;
@@ -958,9 +977,6 @@ function BracketBox({tournament,match,ready,onWinner,onEdit,onBye,director,ready
  };
  const slotA=slotInfo(match.playerIds[0],0);
  const slotB=slotInfo(match.playerIds[1],1);
- const playerA=tournament.players.find(player=>player.id===match.playerIds[0]);
- const playerB=tournament.players.find(player=>player.id===match.playerIds[1]);
- const raceLabel=raceForPlayers(playerA,playerB,settings,match.side);
  const renderSlot=(slot:{label:string;seed:number|null;isBye:boolean},position:'top'|'bottom')=><Pressable disabled={presentation||!director||!slot.isBye||!slot.seed} onPress={()=>slot.seed&&onBye(slot.seed)} style={[s.slotPressable,position==='top'?s.slotTop:s.slotBottom,slot.isBye&&director&&!presentation&&s.byeSlot]}><Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.55} ellipsizeMode="clip" style={[s.slotText,fittedNameStyle(slot.label),slot.isBye&&s.byeText]}>{slot.label}</Text></Pressable>;
  const openMatch=()=>{
   if(match.complete){onEdit(match);return;}
@@ -970,7 +986,6 @@ function BracketBox({tournament,match,ready,onWinner,onEdit,onBye,director,ready
   <Text style={s.matchNumber}>{displayNumber??match.number}</Text>
   {renderSlot(slotA,'top')}
   {renderSlot(slotB,'bottom')}
-  {raceLabel&&<Text style={s.matchRace}>{compactRaceLabel(raceLabel)}</Text>}
  </Pressable>;
 }
 
@@ -1037,7 +1052,6 @@ const s=StyleSheet.create({
  slotTextMedium:{fontSize:10},
  slotTextSmall:{fontSize:9},
  slotTextTiny:{fontSize:8,paddingHorizontal:2},
- matchRace:{position:'absolute',right:3,bottom:1,color:bracketColors.gold,fontSize:8,fontWeight:'900',fontFamily:bracketFont},
  byeSlot:{backgroundColor:bracketColors.bye},
  byeText:{color:bracketColors.number,fontWeight:'900'},
  modalShade:{flex:1,backgroundColor:'rgba(0,0,0,.62)',alignItems:'center',justifyContent:'center',padding:12},
@@ -1098,6 +1112,12 @@ const s=StyleSheet.create({
  scoreValue:{color:bracketColors.score,fontSize:18,fontWeight:'900'},
  scoreWinner:{fontSize:11,fontWeight:'800'},
  scoreEmpty:{fontSize:13,textAlign:'center',paddingVertical:16},
+ skillsWindow:{width:'100%',maxWidth:430,maxHeight:'82%',backgroundColor:'#000',borderColor:theme.green,borderWidth:1,borderRadius:10,padding:14,gap:12},
+ skillsRows:{maxHeight:420},
+ skillsList:{gap:8},
+ skillLevelRow:{minHeight:42,borderWidth:1,borderRadius:6,paddingHorizontal:10,flexDirection:'row',alignItems:'center',gap:10},
+ skillPlayerName:{flex:1,fontSize:14,fontWeight:'900'},
+ skillBadge:{minWidth:58,textAlign:'center',backgroundColor:bracketColors.gold,color:'#071207',fontSize:13,fontWeight:'900',paddingHorizontal:8,paddingVertical:5,borderRadius:4},
  castWindow:{width:'100%',maxWidth:360,backgroundColor:'#071207',borderColor:theme.green,borderWidth:1,padding:18,gap:14},
  castMessage:{color:'#d8ead8',fontSize:13,lineHeight:19},
  castActions:{flexDirection:'row',gap:8},
