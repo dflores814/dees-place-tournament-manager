@@ -397,8 +397,10 @@ const confirmWinner=()=>{
   const rows=payoutRows(t).map(row=>row.place===place?{...row,[field]:value}:row);
   save({...t,payouts:rows});
  };
- const canvasBounds=canvasSize(t.bracketType,castMode);
- const scaledCanvas={width:canvasBounds.width*zoom,height:canvasBounds.height*zoom};
+ const canvasBounds=canvasSize(t.bracketType,false);
+ const castFitZoom=castMode?clamp(Math.min((viewportWidth-24)/canvasBounds.width,(viewportHeight-24)/canvasBounds.height),0.25,1):zoom;
+ const displayZoom=castMode?castFitZoom:zoom;
+ const scaledCanvas={width:canvasBounds.width*displayZoom,height:canvasBounds.height*displayZoom};
  const pinchHandlers={
   onStartShouldSetResponder:(event:GestureResponderEvent)=>event.nativeEvent.touches.length>=2,
   onMoveShouldSetResponder:(event:GestureResponderEvent)=>event.nativeEvent.touches.length>=2,
@@ -437,10 +439,10 @@ const confirmWinner=()=>{
    {participantMode&&<Text style={s.participantBadge}>Participant mode</Text>}
    <Text style={[s.syncBadge,{color:settings.appearance==='light'?colors.text:'#111'}]}>Sync: {syncStatus}</Text>
   </View>}
-  <ScrollView style={s.scroller} contentContainerStyle={[bracketScrollContent,s.bracketViewport]} scrollEnabled={!pinching} centerContent>
-   <ScrollView horizontal scrollEnabled={!pinching} contentContainerStyle={[s.horizontalScroller,bracketScrollContent]}>
+  <ScrollView style={s.scroller} contentContainerStyle={[bracketScrollContent,s.bracketViewport,castMode&&s.castViewport]} scrollEnabled={!pinching&&!castMode} centerContent>
+   <ScrollView horizontal scrollEnabled={!pinching&&!castMode} contentContainerStyle={[s.horizontalScroller,bracketScrollContent,castMode&&s.castViewport]}>
    <View {...pinchHandlers} style={[s.zoomSurface,scaledCanvas]}>
-   <View style={[s.canvas,t.bracketType==='16-single'&&s.single16Canvas,t.bracketType==='32-single'&&s.single32Canvas,t.bracketType==='16-double'&&s.doubleCanvas,t.bracketType==='32-double'&&s.double32Canvas,castMode&&s.castCanvas,{transform:[{translateX:canvasBounds.width*(zoom-1)/2},{translateY:canvasBounds.height*(zoom-1)/2},{scale:zoom}]}]}>
+   <View style={[s.canvas,t.bracketType==='16-single'&&s.single16Canvas,t.bracketType==='32-single'&&s.single32Canvas,t.bracketType==='16-double'&&s.doubleCanvas,t.bracketType==='32-double'&&s.double32Canvas,castMode&&s.castCanvas,{transform:[{translateX:canvasBounds.width*(displayZoom-1)/2},{translateY:canvasBounds.height*(displayZoom-1)/2},{scale:displayZoom}]}]}>
     {!castMode&&<Image source={require('../../assets/dees-place-logo.png')} resizeMode="contain" style={s.bracketLogo}/>}
     {!castMode&&<View style={s.infoPanel}>
      <InfoRow label="Title:" value={titleIsValid(t.name)?t.name:'Title Required'}/>
@@ -903,6 +905,7 @@ const s=StyleSheet.create({
  syncBadge:{color:'#111',fontSize:12,fontWeight:'800',paddingHorizontal:8},
  scroller:{flex:1},
  bracketViewport:{paddingTop:18},
+ castViewport:{alignItems:'center',justifyContent:'center',paddingTop:0},
  horizontalScroller:{alignItems:'flex-start'},
  zoomSurface:{backgroundColor:'#000',position:'relative'},
  canvas:{width:1320,minHeight:760,backgroundColor:'#000',position:'relative',paddingTop:150},
@@ -910,7 +913,7 @@ const s=StyleSheet.create({
  single32Canvas:{width:680,minHeight:940,paddingTop:180},
  doubleCanvas:{width:960,minHeight:1020,paddingTop:190},
  double32Canvas:{width:1080,minHeight:1590,paddingTop:190},
- castCanvas:{paddingTop:8,minHeight:620},
+ castCanvas:{paddingTop:8},
  bracketLogo:{position:'absolute',top:60,left:12,width:126,height:82},
  title:{color:'#fff',fontSize:24,fontWeight:'900',margin:18},
  infoPanel:{position:'absolute',top:62,left:160,width:270,backgroundColor:'#061206',borderColor:theme.green,borderWidth:1,borderRadius:10,padding:6,gap:3},
