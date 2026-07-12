@@ -20,7 +20,8 @@ const bracketColors={
  placement:'#115cff',
  ready:'#ff2633',
  bye:'rgba(124,255,77,.16)',
- gold:'#e0aa45'
+ gold:'#e0aa45',
+ score:'#d783ff'
 };
 
 function sourceSeed(source:SlotSource|undefined){return source?.type==='seed'?source.seed:null;}
@@ -568,7 +569,7 @@ function WinnerModal({visible,match,players,selectedId,setSelectedId,race,scores
     <Text style={[s.winnerHelp,{color:colors.muted}]}>Tap the winner of this match</Text>
     {race&&<Text style={s.raceLabel}>{race.label}</Text>}
     {contenders.map((player,index)=><View key={player.id}>
-     <Pressable onPress={()=>setSelectedId(player.id)} style={[s.winnerChoice,{backgroundColor:colors.panel,borderColor:colors.border},selectedId===player.id&&s.winnerChoiceSelected]}><Text style={[s.crown,{color:selectedId===player.id?'#fff':colors.text}]}>♔</Text><Text style={[s.winnerChoiceText,{color:colors.text},selectedId===player.id&&s.winnerChoiceSelectedText]}>{player.name}</Text><Text style={[s.scoreText,{color:colors.text},selectedId===player.id&&s.winnerChoiceSelectedText]}>{scores[player.id]??0}/{race?.targets[index]??'-'}</Text></Pressable>
+     <Pressable onPress={()=>setSelectedId(player.id)} style={[s.winnerChoice,{backgroundColor:colors.panel,borderColor:colors.border},selectedId===player.id&&s.winnerChoiceSelected]}><Text style={[s.crown,{color:selectedId===player.id?'#fff':colors.text}]}>♔</Text><Text style={[s.winnerChoiceText,{color:colors.text},selectedId===player.id&&s.winnerChoiceSelectedText]}>{player.name}</Text><Text style={[s.scoreText,selectedId===player.id&&s.winnerChoiceSelectedText]}>{scores[player.id]??0}/{race?.targets[index]??'-'}</Text></Pressable>
      {race&&match&&scoreOpen&&director&&<View style={s.scoreEditRow}><Pressable onPress={()=>onScoreChange(match.id,player.id,-1)} style={s.scoreEditButton}><Text style={s.scoreEditText}>-</Text></Pressable><Text style={s.scoreEditLabel}>Change Score</Text><Pressable onPress={()=>onScoreChange(match.id,player.id,1)} style={s.scoreEditButton}><Text style={s.scoreEditText}>+</Text></Pressable></View>}
      {race&&match&&!match.complete&&scoreOpen&&!director&&<Button title="ADD POINT" variant="secondary" onPress={()=>onPoint(match.id,player.id)} style={s.addPointButton}/>}
      {index===0&&<Text style={[s.vs,{color:colors.muted}]}>VS</Text>}
@@ -911,7 +912,7 @@ const s=StyleSheet.create({
  slotBottom:{bottom:4},
  slotText:{color:bracketColors.text,fontSize:11,fontWeight:'700',fontFamily:bracketFont,textAlign:'center',height:18,paddingHorizontal:4,textShadowColor:'#000',textShadowRadius:2,textShadowOffset:{width:0,height:1}},
  matchRace:{position:'absolute',right:3,bottom:1,color:bracketColors.gold,fontSize:8,fontWeight:'900',fontFamily:bracketFont},
- matchScore:{position:'absolute',left:4,bottom:1,color:bracketColors.number,fontSize:9,fontWeight:'900',fontFamily:bracketFont},
+ matchScore:{position:'absolute',left:4,bottom:1,color:bracketColors.score,fontSize:9,fontWeight:'900',fontFamily:bracketFont},
  byeSlot:{backgroundColor:bracketColors.bye},
  byeText:{color:bracketColors.number,fontWeight:'900'},
  modalShade:{flex:1,backgroundColor:'rgba(0,0,0,.62)',alignItems:'center',justifyContent:'center',padding:12},
@@ -976,7 +977,7 @@ const s=StyleSheet.create({
  winnerChoiceSelected:{backgroundColor:'#e0aa45',borderColor:'#e0aa45'},
  crown:{color:'#fff',fontSize:12},
  winnerChoiceText:{color:'#fff',fontSize:13,fontWeight:'900'},
- scoreText:{position:'absolute',right:10,color:'#fff',fontSize:13,fontWeight:'900'},
+ scoreText:{position:'absolute',right:10,color:bracketColors.score,fontSize:13,fontWeight:'900'},
  winnerChoiceSelectedText:{color:'#071207'},
  addPointButton:{minHeight:30,borderRadius:0,marginTop:4},
  changeScoreButton:{minHeight:34,borderRadius:0,marginTop:4},
