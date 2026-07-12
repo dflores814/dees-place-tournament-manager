@@ -1,0 +1,53 @@
+{
+  "expo": {
+    "name": "Dee's Place Tournament Manager",
+    "slug": "dees-place-tournament-manager",
+    "version": "1.0.1",
+    "orientation": "default",
+    "scheme": "deesplacetm",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#000000"
+    },
+    "android": {
+      "permissions": ["CAMERA"],
+      "package": "com.deesplace.tournamentmanager",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#000000"
+      }
+    },
+    "ios": {
+      "bundleIdentifier": "com.deesplace.tournamentmanager",
+      "supportsTablet": true,
+      "icon": "./assets/icon.png",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Allow Dee's Place Tournament Manager to scan tournament QR codes."
+      }
+    },
+    "web": {
+      "bundler": "metro",
+      "favicon": "./assets/icon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Dee's Place Tournament Manager to scan tournament QR codes.",
+          "recordAudioAndroid": false
+        }
+      ]
+    ],
+    "experiments": {"typedRoutes": true},
+    "extra": {
+      "eas": {
+        "projectId": "a54c988e-10b8-4e8d-a544-b8b6dce84a32"
+      }
+    }
+  }
+}
