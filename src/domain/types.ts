@@ -38,10 +38,11 @@ export interface TournamentSettings {
   payoutPreset: 'winner-take-all' | '70-30' | '60-30-10';
   directorPinHash?: string;
   joinToken?: string;
-  raceChartMode?: 'off' | '8-ball-singles' | 'custom' | 'side-race';
+  raceChartMode?: 'off' | '8-ball-singles' | 'custom' | 'side-race' | 'skill-handicap';
   skillLevelsEnabled?: boolean;
   customRaceChart?: Record<string, string>;
   sideRaceTargets?: { upper: number; lower: number; final: number };
+  skillHandicapTargets?: { upper: number; lower: number; final: number };
 }
 
 export interface Tournament {

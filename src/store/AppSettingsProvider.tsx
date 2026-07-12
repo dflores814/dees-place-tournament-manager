@@ -6,10 +6,11 @@ export type AppSettings={
  directorLock:boolean;
  participantPermission:'report-winners'|'view-only'|'director-approval';
  matchConfirmation:'single-tap'|'director-approval'|'both-players';
- raceChartMode:'off'|'8-ball-singles'|'custom'|'side-race';
+ raceChartMode:'off'|'8-ball-singles'|'custom'|'side-race'|'skill-handicap';
  skillLevelsEnabled:boolean;
  customRaceChart:Record<string,string>;
  sideRaceTargets:{upper:number;lower:number;final:number};
+ skillHandicapTargets:{upper:number;lower:number;final:number};
  randomizeDefault:'ask'|'randomize'|'keep-order';
  byeHandling:'editable'|'auto-advance';
  playerDisplay:'full-name'|'initials'|'seed-name';
@@ -42,6 +43,7 @@ const defaults:AppSettings={
  skillLevelsEnabled:false,
  customRaceChart:eightBallSinglesRaceChart,
  sideRaceTargets:{upper:3,lower:2,final:3},
+ skillHandicapTargets:{upper:3,lower:2,final:3},
  randomizeDefault:'ask',
  byeHandling:'editable',
  playerDisplay:'full-name',

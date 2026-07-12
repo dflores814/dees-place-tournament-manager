@@ -68,9 +68,33 @@ function sideRaceTarget(side:ResolvedMatch['side'],settings:AppSettings){
  return settings.sideRaceTargets.upper;
 }
 
+function skillHandicapBaseTarget(side:ResolvedMatch['side'],settings:AppSettings){
+ if(side==='lower')return settings.skillHandicapTargets.lower;
+ if(side==='final')return settings.skillHandicapTargets.final;
+ return settings.skillHandicapTargets.upper;
+}
+
+function skillHandicapRace(playerA:Player|undefined,playerB:Player|undefined,settings:AppSettings,side:ResolvedMatch['side']){
+ if(!playerA||!playerB)return null;
+ const base=Math.max(1,skillHandicapBaseTarget(side,settings));
+ const a=normalizedSkillLevel(playerA.skillLevel);
+ const b=normalizedSkillLevel(playerB.skillLevel);
+ const gap=Math.abs(a-b);
+ const targets:[number,number]=[base,base];
+ if(gap>=2){
+  if(a<b)targets[0]=Math.max(1,base-1);
+  if(b<a)targets[1]=Math.max(1,base-1);
+ }
+ return targets;
+}
+
 function raceForPlayers(playerA:Player|undefined,playerB:Player|undefined,settings:AppSettings,side?:ResolvedMatch['side']){
  if(settings.raceChartMode==='off' || !playerA || !playerB)return null;
  if(settings.raceChartMode==='side-race')return `Race to ${Math.max(1,sideRaceTarget(side??'upper',settings))}`;
+ if(settings.raceChartMode==='skill-handicap'){
+  const targets=skillHandicapRace(playerA,playerB,settings,side??'upper');
+  return targets?`Race ${targets[0]}/${targets[1]}`:null;
+ }
  const chart=settings.raceChartMode==='custom'?settings.customRaceChart:eightBallSinglesRaceChart;
  const a=normalizedSkillLevel(playerA.skillLevel);
  const b=normalizedSkillLevel(playerB.skillLevel);
@@ -86,13 +110,17 @@ function raceTargets(playerA:Player|undefined,playerB:Player|undefined,settings:
   const target=Math.max(1,sideRaceTarget(side??'upper',settings));
   return {label,targets:[target,target] as const};
  }
+ if(settings.raceChartMode==='skill-handicap'){
+  const targets=skillHandicapRace(playerA,playerB,settings,side??'upper');
+  return targets?{label,targets}:null;
+ }
  const match=label.match(/(\d+)\s*\/\s*(\d+)/);
  if(!match)return {label,targets:[fallback,fallback] as const};
  return {label,targets:[Number(match[1]),Number(match[2])] as const};
 }
 
 function shouldShowSkillLevels(settings:AppSettings){
- return settings.raceChartMode==='custom'&&settings.skillLevelsEnabled;
+ return settings.raceChartMode==='skill-handicap'||(settings.raceChartMode==='custom'&&settings.skillLevelsEnabled);
 }
 
 function raceSettingsSnapshot(settings:AppSettings){
@@ -100,7 +128,8 @@ function raceSettingsSnapshot(settings:AppSettings){
   raceChartMode:settings.raceChartMode,
   skillLevelsEnabled:settings.skillLevelsEnabled,
   customRaceChart:settings.customRaceChart,
-  sideRaceTargets:settings.sideRaceTargets
+  sideRaceTargets:settings.sideRaceTargets,
+  skillHandicapTargets:settings.skillHandicapTargets
  };
 }
 
@@ -109,7 +138,8 @@ function sameRaceSettings(tournament:Tournament,settings:AppSettings){
  return tournament.settings.raceChartMode===snapshot.raceChartMode
   && tournament.settings.skillLevelsEnabled===snapshot.skillLevelsEnabled
   && JSON.stringify(tournament.settings.customRaceChart??{})===JSON.stringify(snapshot.customRaceChart)
-  && JSON.stringify(tournament.settings.sideRaceTargets??{})===JSON.stringify(snapshot.sideRaceTargets);
+  && JSON.stringify(tournament.settings.sideRaceTargets??{})===JSON.stringify(snapshot.sideRaceTargets)
+  && JSON.stringify(tournament.settings.skillHandicapTargets??{})===JSON.stringify(snapshot.skillHandicapTargets);
 }
 
 function effectiveRaceSettings(tournament:Tournament,settings:AppSettings):AppSettings{
@@ -118,7 +148,8 @@ function effectiveRaceSettings(tournament:Tournament,settings:AppSettings):AppSe
   raceChartMode:tournament.settings.raceChartMode??settings.raceChartMode,
   skillLevelsEnabled:tournament.settings.skillLevelsEnabled??settings.skillLevelsEnabled,
   customRaceChart:tournament.settings.customRaceChart??settings.customRaceChart,
-  sideRaceTargets:tournament.settings.sideRaceTargets??settings.sideRaceTargets
+  sideRaceTargets:tournament.settings.sideRaceTargets??settings.sideRaceTargets,
+  skillHandicapTargets:tournament.settings.skillHandicapTargets??settings.skillHandicapTargets
  };
 }
 
@@ -217,11 +248,11 @@ export default function TournamentScreen(){
   const stamped={...t,settings:{...t.settings,...raceSettingsSnapshot(settings)},updatedAt:new Date().toISOString()};
   update(stamped);
   if(syncStatus==='connected')syncRef.current?.publish(stamped);
- },[t?.id,t?.updatedAt,t?.settings.raceChartMode,t?.settings.skillLevelsEnabled,t?.settings.customRaceChart,t?.settings.sideRaceTargets,participantMode,settings.raceChartMode,settings.skillLevelsEnabled,settings.customRaceChart,settings.sideRaceTargets,syncStatus,update]);
+ },[t?.id,t?.updatedAt,t?.settings.raceChartMode,t?.settings.skillLevelsEnabled,t?.settings.customRaceChart,t?.settings.sideRaceTargets,t?.settings.skillHandicapTargets,participantMode,settings.raceChartMode,settings.skillLevelsEnabled,settings.customRaceChart,settings.sideRaceTargets,settings.skillHandicapTargets,syncStatus,update]);
  useEffect(()=>{
   if(!t||participantMode||syncStatus!=='connected')return;
   syncRef.current?.publish({...t,settings:{...t.settings,...raceSettingsSnapshot(settings)}});
- },[t?.id,t?.updatedAt,participantMode,syncStatus,settings.raceChartMode,settings.skillLevelsEnabled,settings.customRaceChart,settings.sideRaceTargets]);
+ },[t?.id,t?.updatedAt,participantMode,syncStatus,settings.raceChartMode,settings.skillLevelsEnabled,settings.customRaceChart,settings.sideRaceTargets,settings.skillHandicapTargets]);
  if(!t)return <View style={[s.page,{backgroundColor:colors.bg}]}><Text style={[s.title,{color:colors.text}]}>{realtimeConfigured()?'Joining tournament...':'Tournament not found'}</Text><Text style={[s.muted,{color:colors.muted}]}>{realtimeConfigured()?`Sync status: ${syncStatus}`:'Realtime sync is not configured on this build.'}</Text><Button title="Home" onPress={()=>router.replace('/')}/></View>;
  const save=(next:Tournament)=>{
   const raced=participantMode?next:{...next,settings:{...next.settings,...raceSettingsSnapshot(settings)}};

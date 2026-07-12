@@ -91,7 +91,7 @@ function SettingsModal({visible,settings,updateSetting,resetSettings,close}:{vis
      {section:'Match Flow',rows:[
       <SettingChoice key="participantPermission" label="Participant permissions" value={settings.participantPermission} options={[['report-winners','Report winners'],['view-only','View only'],['director-approval','Director approval']]} onChange={value=>updateSetting('participantPermission',value as AppSettings['participantPermission'])}/>,
       <SettingChoice key="matchConfirmation" label="Match confirmation" value={settings.matchConfirmation} options={[['single-tap','Single tap'],['director-approval','Director approval'],['both-players','Both players']]} onChange={value=>updateSetting('matchConfirmation',value as AppSettings['matchConfirmation'])}/>,
-      <SettingChoice key="raceChartMode" label="Match race chart" value={settings.raceChartMode} options={[['off','Off'],['side-race','Side Race'],['8-ball-singles','8-Ball Singles'],['custom','Custom']]} onChange={value=>updateSetting('raceChartMode',value as AppSettings['raceChartMode'])}/>,
+      <SettingChoice key="raceChartMode" label="Match race chart" value={settings.raceChartMode} options={[['off','Off'],['side-race','Side Race'],['skill-handicap','Skill Handicap'],['8-ball-singles','8-Ball Singles'],['custom','Custom']]} onChange={value=>updateSetting('raceChartMode',value as AppSettings['raceChartMode'])}/>,
       <SettingToggle key="skillLevelsEnabled" label="Custom race skill levels" value={settings.skillLevelsEnabled} onChange={value=>updateSetting('skillLevelsEnabled',value)}/>,
       <RaceChartEditor key="raceChartEditor" settings={settings} updateSetting={updateSetting}/>,
       <SettingChoice key="randomizeDefault" label="Randomize at start" value={settings.randomizeDefault} options={[['ask','Always ask'],['randomize','Randomize'],['keep-order','Keep order']]} onChange={value=>updateSetting('randomizeDefault',value as AppSettings['randomizeDefault'])}/>,
@@ -146,6 +146,20 @@ function RaceChartEditor({settings,updateSetting}:{settings:AppSettings;updateSe
     <SideRaceInput label="Winner side" value={settings.sideRaceTargets.upper} onChange={value=>updateSide('upper',value)}/>
     <SideRaceInput label="Loser side" value={settings.sideRaceTargets.lower} onChange={value=>updateSide('lower',value)}/>
     <SideRaceInput label="Finals" value={settings.sideRaceTargets.final} onChange={value=>updateSide('final',value)}/>
+   </View>
+  </View>;
+ }
+ if(settings.raceChartMode==='skill-handicap'){
+  const updateSide=(side:keyof AppSettings['skillHandicapTargets'],value:string)=>{
+   const number=Number(value.replace(/\D/g,''));
+   updateSetting('skillHandicapTargets',{...settings.skillHandicapTargets,[side]:Number.isFinite(number)&&number>0?Math.min(99,number):1});
+  };
+  return <View style={[s.raceEditor,{borderColor:colors.border}]}>
+   <Text style={[s.raceHelp,{color:colors.muted}]}>Set base race lengths by bracket side. If skill levels differ by 2 or more, the lower skill player is spotted 1 game. The maximum spot is 1 game.</Text>
+   <View style={s.sideRaceGrid}>
+    <SideRaceInput label="Winner side" value={settings.skillHandicapTargets.upper} onChange={value=>updateSide('upper',value)}/>
+    <SideRaceInput label="Loser side" value={settings.skillHandicapTargets.lower} onChange={value=>updateSide('lower',value)}/>
+    <SideRaceInput label="Finals" value={settings.skillHandicapTargets.final} onChange={value=>updateSide('final',value)}/>
    </View>
   </View>;
  }
