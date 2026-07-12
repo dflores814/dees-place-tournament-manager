@@ -699,6 +699,7 @@ function WinnerModal({visible,match,players,selectedId,setSelectedId,race,scores
     {race&&match&&!match.complete&&<Button title={scoreOpen?'HIDE SCORE':'CHANGE SCORE'} variant="secondary" onPress={()=>setScoreOpen(value=>!value)} style={s.changeScoreButton}/>}
     {race&&selectedId&&selectedTarget>0&&selectedScore<selectedTarget&&<Text style={[s.winnerHelp,{color:colors.muted}]}>Selected winner needs {selectedTarget-selectedScore} more point{selectedTarget-selectedScore===1?'':'s'}.</Text>}
     <Button title="CONFIRM" onPress={confirm} disabled={!canConfirm} style={s.confirmWinner}/>
+    <Button title="BACK TO BRACKET" variant="secondary" onPress={close} style={s.backToBracketButton}/>
    </View>
   </View>
  </Modal>;
@@ -1121,6 +1122,7 @@ const s=StyleSheet.create({
  scoreEditLabel:{color:'#b8cbb8',fontSize:10,fontWeight:'800'},
  vs:{color:'#879487',fontSize:10,textAlign:'center',paddingVertical:8},
  confirmWinner:{marginTop:2,borderRadius:0},
+ backToBracketButton:{minHeight:34,borderRadius:0},
  qrWindow:{width:300,backgroundColor:'#000',borderColor:'#333',borderWidth:1,padding:18,gap:12},
  qrTitle:{color:'#fff',fontWeight:'900',fontSize:18},
  qrImage:{width:180,height:180,alignSelf:'center',backgroundColor:'#fff'},
