@@ -3,7 +3,6 @@
     "name": "Dee's Place Tournament Manager",
     "slug": "tournament-manager",
     "version": "1.0.1",
-    "jsEngine": "jsc",
     "orientation": "default",
     "scheme": "deesplacetm",
     "userInterfaceStyle": "dark",
@@ -15,6 +14,7 @@
       "backgroundColor": "#000000"
     },
     "android": {
+      "jsEngine": "jsc",
       "permissions": [
         "CAMERA",
         "android.permission.CAMERA"

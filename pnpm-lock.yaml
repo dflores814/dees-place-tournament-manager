@@ -57,6 +57,9 @@ importers:
       '@types/react':
         specifier: ~19.1.0
         version: 19.1.17
+      metro-resolver:
+        specifier: 0.83.7
+        version: 0.83.7
       typescript:
         specifier: ~5.9.2
         version: 5.9.3
