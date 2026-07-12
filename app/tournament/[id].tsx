@@ -179,6 +179,7 @@ export default function TournamentScreen(){
  const [syncStatus,setSyncStatus]=useState<SyncStatus>(realtimeConfigured()?'connecting':'unconfigured');
  const [playersOpen,setPlayersOpen]=useState(false);
  const [payoutOpen,setPayoutOpen]=useState(false);
+ const [scoresOpen,setScoresOpen]=useState(false);
  const [qrOpen,setQrOpen]=useState(false);
  const [startOpen,setStartOpen]=useState(false);
  const [startBlocker,setStartBlocker]=useState<string|null>(null);
@@ -433,6 +434,7 @@ const confirmWinner=()=>{
    {!participantMode&&<Button title="Start" onPress={startTournament} disabled={t.status==='complete'}/>}
    {!participantMode&&<Button title="Save" variant="secondary" onPress={()=>save(t)}/>}
    {!participantMode&&<Button title="Payout" variant="secondary" onPress={()=>setPayoutOpen(true)}/>}
+   <Button title="Scores" variant="secondary" onPress={()=>setScoresOpen(true)}/>
    {!participantMode&&<Button title="QR" variant="secondary" onPress={()=>setQrOpen(true)}/>}
    {!participantMode&&<Button title="Cast Screen" variant="secondary" onPress={openCastPicker}/>}
    {!participantMode&&<Button title="End Tournament" variant="danger" onPress={endTournament}/>}
@@ -462,6 +464,7 @@ const confirmWinner=()=>{
   <NoticeModal visible={!!startBlocker} title="Tournament cannot start" message={startBlocker??''} close={()=>setStartBlocker(null)}/>
   <EndTournamentModal visible={endOpen} confirm={confirmEndTournament} close={()=>setEndOpen(false)}/>
   <PayoutModal visible={payoutOpen} rows={payoutRows(t)} onChange={updatePayout} close={()=>setPayoutOpen(false)}/>
+  <ScoresModal visible={scoresOpen} tournament={t} matches={resolved} settings={raceSettings} close={()=>setScoresOpen(false)}/>
   <CastDeviceModal visible={castPickerOpen} status={castStatus} search={searchCastDevices} useThisScreen={startCast} close={()=>setCastPickerOpen(false)}/>
   <WinnerModal visible={!!winnerMatch} match={winnerMatch} players={t.players} selectedId={winnerPickId} setSelectedId={setWinnerPickId} race={winnerMatch?raceTargets(t.players.find(player=>player.id===winnerMatch.playerIds[0]),t.players.find(player=>player.id===winnerMatch.playerIds[1]),raceSettings,t,winnerMatch.side):null} scores={winnerMatch?scoreFor(t.scores,winnerMatch.id):{}} director={!participantMode} onPoint={requestPoint} onScoreChange={changeScore} confirm={confirmWinner} close={()=>{setWinnerMatchId(null);setWinnerPickId(null);}}/>
   <ConfirmPointModal visible={!!pendingPoint} player={t.players.find(player=>player.id===pendingPoint?.playerId)} confirm={confirmPoint} close={()=>setPendingPoint(null)}/>
@@ -564,6 +567,52 @@ function PayoutModal({visible,rows,onChange,close}:{visible:boolean;rows:PayoutR
      </View>)}
     </View>
     <View style={s.modalActions}><Button title="Close" variant="secondary" onPress={close}/></View>
+   </View>
+  </View>
+ </Modal>;
+}
+
+type ScoreView='menu'|'played'|'live';
+function ScoresModal({visible,tournament,matches,settings,close}:{visible:boolean;tournament:Tournament;matches:ResolvedMatch[];settings:AppSettings;close:()=>void}){
+ const {settings:appSettings}=useAppSettings();
+ const colors=getTheme(appSettings.appearance);
+ const [view,setView]=useState<ScoreView>('menu');
+ useEffect(()=>{if(visible)setView('menu');},[visible]);
+ const playerName=(id:string|null)=>tournament.players.find(player=>player.id===id)?.name??'TBD';
+ const scoreLine=(match:ResolvedMatch)=>{
+  const matchScore=scoreFor(tournament.scores,match.id);
+  const first=match.playerIds[0],second=match.playerIds[1];
+  const playerA=tournament.players.find(player=>player.id===first);
+  const playerB=tournament.players.find(player=>player.id===second);
+  const race=raceTargets(playerA,playerB,settings,tournament,match.side);
+  const left=first?matchScore[first]??0:0;
+  const right=second?matchScore[second]??0:0;
+  return race?`${left}/${race.targets[0]} - ${right}/${race.targets[1]}`:`${left} - ${right}`;
+ };
+ const hasScore=(match:ResolvedMatch)=>Object.keys(scoreFor(tournament.scores,match.id)).length>0;
+ const played=matches.filter(match=>match.complete&&(hasScore(match)||match.winnerId));
+ const live=matches.filter(match=>match.ready&&!match.complete);
+ const rows=view==='played'?played:view==='live'?live:[];
+ const title=view==='played'?'Played Match Scores':view==='live'?'Live Scores':'Scores';
+ return <Modal transparent visible={visible} animationType="fade" onRequestClose={close}>
+  <View style={[s.modalShade,{backgroundColor:colors.shade}]}>
+   <View style={[s.scoresWindow,{backgroundColor:colors.panel,borderColor:colors.green}]}>
+    <View style={s.payoutHeader}><Text style={[s.payoutTitle,{color:colors.text}]}>{title}</Text><Pressable onPress={close}><Text style={[s.winnerClose,{color:colors.text}]}>x</Text></Pressable></View>
+    {view==='menu'?<View style={s.scoreChoiceList}>
+     <Button title="Played Match Scores" onPress={()=>setView('played')}/>
+     <Button title="Live Scores" variant="secondary" onPress={()=>setView('live')}/>
+    </View>:<View style={s.scoreList}>
+     <ScrollView style={s.scoreRows}>
+      {rows.length===0&&<Text style={[s.scoreEmpty,{color:colors.muted}]}>{view==='live'?'No matches are currently ready or being played.':'No completed match scores yet.'}</Text>}
+      {rows.map(match=><View key={match.id} style={[s.scoreRow,{borderColor:colors.border,backgroundColor:colors.panel2}]}>
+       <Text style={[s.scoreMatchTitle,{color:colors.text}]}>Match {match.number}</Text>
+       <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.65} style={[s.scorePlayers,{color:colors.text}]}>{playerName(match.playerIds[0])} vs {playerName(match.playerIds[1])}</Text>
+       <Text style={s.scoreValue}>{scoreLine(match)}</Text>
+       {match.winnerId&&<Text numberOfLines={1} style={[s.scoreWinner,{color:colors.muted}]}>Winner: {playerName(match.winnerId)}</Text>}
+      </View>)}
+     </ScrollView>
+     <Button title="Back" variant="secondary" onPress={()=>setView('menu')}/>
+    </View>}
    </View>
   </View>
  </Modal>;
@@ -1011,6 +1060,16 @@ const s=StyleSheet.create({
  payoutInput:{minHeight:26,borderWidth:1,paddingHorizontal:6,fontSize:12},
  payoutPlayerInput:{flex:1},
  payoutAmountInput:{width:86},
+ scoresWindow:{width:'100%',maxWidth:430,maxHeight:'82%',backgroundColor:'#000',borderColor:theme.green,borderWidth:1,borderRadius:10,padding:14,gap:12},
+ scoreChoiceList:{gap:10},
+ scoreList:{gap:10},
+ scoreRows:{maxHeight:420},
+ scoreRow:{borderWidth:1,borderRadius:6,padding:10,marginBottom:8,gap:4},
+ scoreMatchTitle:{fontSize:12,fontWeight:'900'},
+ scorePlayers:{fontSize:13,fontWeight:'800'},
+ scoreValue:{color:bracketColors.score,fontSize:18,fontWeight:'900'},
+ scoreWinner:{fontSize:11,fontWeight:'800'},
+ scoreEmpty:{fontSize:13,textAlign:'center',paddingVertical:16},
  castWindow:{width:'100%',maxWidth:360,backgroundColor:'#071207',borderColor:theme.green,borderWidth:1,padding:18,gap:14},
  castMessage:{color:'#d8ead8',fontSize:13,lineHeight:19},
  castActions:{flexDirection:'row',gap:8},
