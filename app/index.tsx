@@ -91,7 +91,7 @@ function SettingsModal({visible,settings,updateSetting,resetSettings,close}:{vis
      {section:'Match Flow',rows:[
       <SettingChoice key="participantPermission" label="Participant permissions" value={settings.participantPermission} options={[['report-winners','Report winners'],['view-only','View only'],['director-approval','Director approval']]} onChange={value=>updateSetting('participantPermission',value as AppSettings['participantPermission'])}/>,
       <SettingChoice key="matchConfirmation" label="Match confirmation" value={settings.matchConfirmation} options={[['single-tap','Single tap'],['director-approval','Director approval'],['both-players','Both players']]} onChange={value=>updateSetting('matchConfirmation',value as AppSettings['matchConfirmation'])}/>,
-      <SettingChoice key="raceChartMode" label="Match race chart" value={settings.raceChartMode} options={[['off','Off'],['8-ball-singles','8-Ball Singles'],['custom','Custom']]} onChange={value=>updateSetting('raceChartMode',value as AppSettings['raceChartMode'])}/>,
+      <SettingChoice key="raceChartMode" label="Match race chart" value={settings.raceChartMode} options={[['off','Off'],['side-race','Side Race'],['8-ball-singles','8-Ball Singles'],['custom','Custom']]} onChange={value=>updateSetting('raceChartMode',value as AppSettings['raceChartMode'])}/>,
       <SettingToggle key="skillLevelsEnabled" label="Custom race skill levels" value={settings.skillLevelsEnabled} onChange={value=>updateSetting('skillLevelsEnabled',value)}/>,
       <RaceChartEditor key="raceChartEditor" settings={settings} updateSetting={updateSetting}/>,
       <SettingChoice key="randomizeDefault" label="Randomize at start" value={settings.randomizeDefault} options={[['ask','Always ask'],['randomize','Randomize'],['keep-order','Keep order']]} onChange={value=>updateSetting('randomizeDefault',value as AppSettings['randomizeDefault'])}/>,
@@ -135,6 +135,20 @@ function SettingChoice({label,value,options,onChange}:{label:string;value:string
 function RaceChartEditor({settings,updateSetting}:{settings:AppSettings;updateSetting:<K extends keyof AppSettings>(key:K,value:AppSettings[K])=>void}){
  const colors=getTheme(settings.appearance);
  if(settings.raceChartMode==='off') return <Text style={[s.raceHelp,{color:colors.muted}]}>Race chart is off. Matches will not show custom race information.</Text>;
+ if(settings.raceChartMode==='side-race'){
+  const updateSide=(side:keyof AppSettings['sideRaceTargets'],value:string)=>{
+   const number=Number(value.replace(/\D/g,''));
+   updateSetting('sideRaceTargets',{...settings.sideRaceTargets,[side]:Number.isFinite(number)&&number>0?Math.min(99,number):1});
+  };
+  return <View style={[s.raceEditor,{borderColor:colors.border}]}>
+   <Text style={[s.raceHelp,{color:colors.muted}]}>Set race lengths by bracket side. Winners side and finals can be longer than the losers side.</Text>
+   <View style={s.sideRaceGrid}>
+    <SideRaceInput label="Winner side" value={settings.sideRaceTargets.upper} onChange={value=>updateSide('upper',value)}/>
+    <SideRaceInput label="Loser side" value={settings.sideRaceTargets.lower} onChange={value=>updateSide('lower',value)}/>
+    <SideRaceInput label="Finals" value={settings.sideRaceTargets.final} onChange={value=>updateSide('final',value)}/>
+   </View>
+  </View>;
+ }
  const chart=settings.raceChartMode==='custom'?settings.customRaceChart:eightBallSinglesRaceChart;
  const updateCell=(key:string,value:string)=>updateSetting('customRaceChart',{...settings.customRaceChart,[key]:value});
  return <View style={[s.raceEditor,{borderColor:colors.border}]}>
@@ -150,6 +164,12 @@ function RaceChartEditor({settings,updateSetting}:{settings:AppSettings;updateSe
    })}
   </View>)}
  </View>;
+}
+
+function SideRaceInput({label,value,onChange}:{label:string;value:number;onChange:(value:string)=>void}){
+ const {settings}=useAppSettings();
+ const colors=getTheme(settings.appearance);
+ return <View style={s.sideRaceItem}><Text style={[s.settingTitle,{color:colors.text}]}>{label}</Text><TextInput value={String(value)} onChangeText={onChange} keyboardType="number-pad" style={[s.sideRaceInput,{backgroundColor:colors.input,color:colors.inputText,borderColor:colors.border}]}/></View>;
 }
 
 const s=StyleSheet.create({
@@ -195,6 +215,9 @@ const s=StyleSheet.create({
  raceCorner:{width:44,color:theme.green},
  raceCell:{width:58,minHeight:30,color:'#fff',fontSize:12,textAlign:'center',textAlignVertical:'center',borderColor:'#244024',borderWidth:1,paddingVertical:6},
  raceInput:{width:58,minHeight:30,backgroundColor:'#fff',color:'#000',fontSize:12,textAlign:'center',borderColor:'#244024',borderWidth:1,padding:3},
+ sideRaceGrid:{flexDirection:'row',gap:8,flexWrap:'wrap'},
+ sideRaceItem:{minWidth:120,flex:1,gap:5},
+ sideRaceInput:{minHeight:38,borderWidth:1,borderRadius:5,paddingHorizontal:10,fontSize:16,fontWeight:'900',textAlign:'center'},
  modalHeading:{color:'#fff',fontSize:20,fontWeight:'900',paddingHorizontal:18,paddingTop:18},
  fieldset:{borderColor:theme.green,borderWidth:1,margin:18,padding:14},
  legend:{position:'absolute',top:-10,left:8,backgroundColor:'#020602',color:theme.green,fontSize:12,paddingHorizontal:4},

@@ -61,8 +61,15 @@ function normalizedSkillLevel(value:number|undefined){
  return skillLevels.some(level=>level===value)?value??2:2;
 }
 
-function raceForPlayers(playerA:Player|undefined,playerB:Player|undefined,settings:AppSettings){
+function sideRaceTarget(side:ResolvedMatch['side'],settings:AppSettings){
+ if(side==='lower')return settings.sideRaceTargets.lower;
+ if(side==='final')return settings.sideRaceTargets.final;
+ return settings.sideRaceTargets.upper;
+}
+
+function raceForPlayers(playerA:Player|undefined,playerB:Player|undefined,settings:AppSettings,side?:ResolvedMatch['side']){
  if(settings.raceChartMode==='off' || !playerA || !playerB)return null;
+ if(settings.raceChartMode==='side-race')return `Race to ${Math.max(1,sideRaceTarget(side??'upper',settings))}`;
  const chart=settings.raceChartMode==='custom'?settings.customRaceChart:eightBallSinglesRaceChart;
  const a=normalizedSkillLevel(playerA.skillLevel);
  const b=normalizedSkillLevel(playerB.skillLevel);
@@ -70,10 +77,14 @@ function raceForPlayers(playerA:Player|undefined,playerB:Player|undefined,settin
  return race?`Race ${race}`:null;
 }
 
-function raceTargets(playerA:Player|undefined,playerB:Player|undefined,settings:AppSettings,tournament:Tournament){
- const label=raceForPlayers(playerA,playerB,settings);
+function raceTargets(playerA:Player|undefined,playerB:Player|undefined,settings:AppSettings,tournament:Tournament,side?:ResolvedMatch['side']){
+ const label=raceForPlayers(playerA,playerB,settings,side);
  const fallback=Math.max(1,tournament.settings.raceTo??2);
  if(!label)return null;
+ if(settings.raceChartMode==='side-race'){
+  const target=Math.max(1,sideRaceTarget(side??'upper',settings));
+  return {label,targets:[target,target] as const};
+ }
  const match=label.match(/(\d+)\s*\/\s*(\d+)/);
  if(!match)return {label,targets:[fallback,fallback] as const};
  return {label,targets:[Number(match[1]),Number(match[2])] as const};
@@ -267,7 +278,7 @@ export default function TournamentScreen(){
   if(!match||!match.ready||match.complete)return;
   const playerA=t.players.find(player=>player.id===match.playerIds[0]);
   const playerB=t.players.find(player=>player.id===match.playerIds[1]);
-  if(!raceTargets(playerA,playerB,settings,t))return;
+  if(!raceTargets(playerA,playerB,settings,t,match.side))return;
   setPendingPoint({matchId,playerId});
  };
  const confirmPoint=()=>{
@@ -276,7 +287,7 @@ export default function TournamentScreen(){
   if(!match || match.complete){setPendingPoint(null);return;}
   const playerA=t.players.find(player=>player.id===match.playerIds[0]);
   const playerB=t.players.find(player=>player.id===match.playerIds[1]);
-  const race=raceTargets(playerA,playerB,settings,t);
+  const race=raceTargets(playerA,playerB,settings,t,match.side);
   if(!race){setPendingPoint(null);return;}
   const playerIndex=match.playerIds[0]===pendingPoint.playerId?0:1;
   const nextScores=withPoint(t.scores,match.id,pendingPoint.playerId);
@@ -295,7 +306,7 @@ export default function TournamentScreen(){
   if(!match)return;
   const playerA=t.players.find(player=>player.id===match.playerIds[0]);
   const playerB=t.players.find(player=>player.id===match.playerIds[1]);
-  const race=raceTargets(playerA,playerB,settings,t);
+  const race=raceTargets(playerA,playerB,settings,t,match.side);
   if(!race)return;
   const playerIndex=match.playerIds[0]===playerId?0:1;
   const nextScores=withScoreDelta(t.scores,matchId,playerId,delta);
@@ -414,7 +425,7 @@ export default function TournamentScreen(){
   <EndTournamentModal visible={endOpen} confirm={confirmEndTournament} close={()=>setEndOpen(false)}/>
   <PayoutModal visible={payoutOpen} rows={payoutRows(t)} onChange={updatePayout} close={()=>setPayoutOpen(false)}/>
   <CastDeviceModal visible={castPickerOpen} status={castStatus} search={searchCastDevices} useThisScreen={startCast} close={()=>setCastPickerOpen(false)}/>
-  <WinnerModal visible={!!winnerMatch} match={winnerMatch} players={t.players} selectedId={winnerPickId} setSelectedId={setWinnerPickId} race={winnerMatch?raceTargets(t.players.find(player=>player.id===winnerMatch.playerIds[0]),t.players.find(player=>player.id===winnerMatch.playerIds[1]),settings,t):null} scores={winnerMatch?scoreFor(t.scores,winnerMatch.id):{}} director={!participantMode} onPoint={requestPoint} onScoreChange={changeScore} confirm={confirmWinner} close={()=>{setWinnerMatchId(null);setWinnerPickId(null);}}/>
+  <WinnerModal visible={!!winnerMatch} match={winnerMatch} players={t.players} selectedId={winnerPickId} setSelectedId={setWinnerPickId} race={winnerMatch?raceTargets(t.players.find(player=>player.id===winnerMatch.playerIds[0]),t.players.find(player=>player.id===winnerMatch.playerIds[1]),settings,t,winnerMatch.side):null} scores={winnerMatch?scoreFor(t.scores,winnerMatch.id):{}} director={!participantMode} onPoint={requestPoint} onScoreChange={changeScore} confirm={confirmWinner} close={()=>{setWinnerMatchId(null);setWinnerPickId(null);}}/>
   <ConfirmPointModal visible={!!pendingPoint} player={t.players.find(player=>player.id===pendingPoint?.playerId)} confirm={confirmPoint} close={()=>setPendingPoint(null)}/>
   <Modal transparent visible={qrOpen} animationType="fade" onRequestClose={()=>setQrOpen(false)}>
    <QrModal tournament={t} syncStatus={syncStatus} close={()=>setQrOpen(false)}/>
@@ -583,6 +594,10 @@ function displayPlayer(player:Player,mode:PlayerDisplay){
  if(mode==='initials') return player.name.split(/\s+/).filter(Boolean).map(part=>part[0]?.toUpperCase()).join('');
  if(mode==='seed-name') return `${player.seed}. ${player.name}`;
  return player.name;
+}
+function compactRaceLabel(label:string){
+ const sideRace=label.match(/^Race to (\d+)/);
+ return sideRace?.[1]?`R${sideRace[1]}`:label.replace('Race ','');
 }
 
 function BracketCanvas({tournament,matches,readyIds,onWinner,onEdit,onBye,director,readyColor,playerDisplay,settings,presentation=false}:{tournament:Tournament;matches:ResolvedMatch[];readyIds:Set<string>;onWinner:(match:ResolvedMatch)=>void;onEdit:(match:ResolvedMatch)=>void;onBye:(seed:number)=>void;director:boolean;readyColor:ReadyColor;playerDisplay:PlayerDisplay;settings:AppSettings;presentation?:boolean}){
@@ -817,7 +832,7 @@ function BracketBox({tournament,match,ready,onWinner,onEdit,onBye,director,ready
  const slotB=slotInfo(match.playerIds[1],1);
  const playerA=tournament.players.find(player=>player.id===match.playerIds[0]);
  const playerB=tournament.players.find(player=>player.id===match.playerIds[1]);
- const raceLabel=raceForPlayers(playerA,playerB,settings);
+ const raceLabel=raceForPlayers(playerA,playerB,settings,match.side);
  const matchScore=scoreFor(tournament.scores,match.id);
  const scoreLabel=raceLabel&&playerA&&playerB?`${matchScore[playerA.id]??0}-${matchScore[playerB.id]??0}`:null;
  const renderSlot=(slot:{label:string;seed:number|null;isBye:boolean},position:'top'|'bottom')=><Pressable disabled={presentation||!director||!slot.isBye||!slot.seed} onPress={()=>slot.seed&&onBye(slot.seed)} style={[s.slotPressable,position==='top'?s.slotTop:s.slotBottom,slot.isBye&&director&&!presentation&&s.byeSlot]}><Text numberOfLines={1} style={[s.slotText,slot.isBye&&s.byeText]}>{slot.label}</Text></Pressable>;
@@ -829,7 +844,7 @@ function BracketBox({tournament,match,ready,onWinner,onEdit,onBye,director,ready
   <Text style={s.matchNumber}>{displayNumber??match.number}</Text>
   {renderSlot(slotA,'top')}
   {renderSlot(slotB,'bottom')}
-  {raceLabel&&<Text style={s.matchRace}>{raceLabel.replace('Race ','')}</Text>}
+  {raceLabel&&<Text style={s.matchRace}>{compactRaceLabel(raceLabel)}</Text>}
   {scoreLabel&&<Text style={s.matchScore}>{scoreLabel}</Text>}
  </Pressable>;
 }
