@@ -158,7 +158,8 @@ function touchDistance(event:GestureResponderEvent){
 function canvasSize(type:BracketType,castMode:boolean){
  if(type==='16-single') return {width:580,height:520};
  if(type==='32-single') return {width:680,height:890};
- if(type==='32-double') return {width:1560,height:950};
+ if(type==='16-double') return {width:960,height:castMode?820:920};
+ if(type==='32-double') return {width:1080,height:castMode?1480:1520};
  return {width:1300,height:castMode?620:760};
 }
 
@@ -703,40 +704,39 @@ function DoubleElim16Canvas({tournament,matches,readyIds,onWinner,onEdit,onBye,d
   return <BracketBox key={id} {...props}/>;
  };
  const p={
-  L14:{left:0,top:388},L13:{left:95,top:318},L11:{left:210,top:247},L12:{left:210,top:388},
-  L9:{left:330,top:220},L10:{left:330,top:361},L5:{left:450,top:107},L6:{left:450,top:198},L7:{left:450,top:290},L8:{left:450,top:381},
-  L1:{left:540,top:95},L2:{left:540,top:164},L3:{left:540,top:257},L4:{left:540,top:326},
-  U1:{left:628,top:32},U2:{left:628,top:101},U3:{left:628,top:170},U4:{left:628,top:239},U5:{left:628,top:308},U6:{left:628,top:377},U7:{left:628,top:446},U8:{left:628,top:515},
-  U9:{left:748,top:67},U10:{left:748,top:205},U11:{left:748,top:343},U12:{left:748,top:481},
-  U13:{left:868,top:135},U14:{left:868,top:412},U15:{left:996,top:273},GF:{left:1092,top:328},GFR:{left:1092,top:411}
+  U1:{left:0,top:0},U2:{left:0,top:45},U3:{left:0,top:90},U4:{left:0,top:135},U5:{left:0,top:180},U6:{left:0,top:225},U7:{left:0,top:270},U8:{left:0,top:315},
+  U9:{left:126,top:22},U10:{left:126,top:112},U11:{left:126,top:202},U12:{left:126,top:292},
+  U13:{left:252,top:67},U14:{left:252,top:247},U15:{left:378,top:157},GF:{left:504,top:202},GFR:{left:504,top:285},
+  L1:{left:704,top:470},L2:{left:704,top:560},L3:{left:704,top:650},L4:{left:704,top:740},
+  L5:{left:578,top:448},L6:{left:578,top:538},L7:{left:578,top:628},L8:{left:578,top:718},
+  L9:{left:452,top:493},L10:{left:452,top:673},L11:{left:326,top:493},L12:{left:326,top:673},
+  L13:{left:200,top:583},L14:{left:74,top:673}
  } satisfies Record<string,BoxPoint>;
  return <View style={s.templateArea}>
   <PairConnector a={p.U1} b={p.U2} to={p.U9}/><PairConnector a={p.U3} b={p.U4} to={p.U10}/><PairConnector a={p.U5} b={p.U6} to={p.U11}/><PairConnector a={p.U7} b={p.U8} to={p.U12}/>
-  <PairConnector a={p.U9} b={p.U10} to={p.U13}/><PairConnector a={p.U11} b={p.U12} to={p.U14}/><PairConnector a={p.U13} b={p.U14} to={p.U15}/><StepConnector from={p.U15} to={p.GF}/><EndConnector from={p.GF} left={1092} top={360}/>
+  <PairConnector a={p.U9} b={p.U10} to={p.U13}/><PairConnector a={p.U11} b={p.U12} to={p.U14}/><PairConnector a={p.U13} b={p.U14} to={p.U15}/><StepConnector from={p.U15} to={p.GF}/><EndConnector from={p.GF} left={504} top={330}/>
   <StepConnector from={p.L1} to={p.L5}/><StepConnector from={p.L2} to={p.L6}/><StepConnector from={p.L3} to={p.L7}/><StepConnector from={p.L4} to={p.L8}/>
   <PairConnector a={p.L5} b={p.L6} to={p.L9}/><PairConnector a={p.L7} b={p.L8} to={p.L10}/><StepConnector from={p.L9} to={p.L11}/><StepConnector from={p.L10} to={p.L12}/>
   <PairConnector a={p.L11} b={p.L12} to={p.L13}/><StepConnector from={p.L13} to={p.L14}/>
-  <View style={[s.placeLabel,{left:95,top:409}]}><Text style={s.placeLabelText}>3rd</Text></View>
-  <View style={[s.placeLabel,{left:184,top:339}]}><Text style={s.placeLabelText}>4th</Text></View>
-  <View style={[s.placeLabel,{left:266,top:315}]}><Text style={s.placeLabelText}>5th</Text></View>
-  <View style={[s.placeLabel,{left:266,top:371}]}><Text style={s.placeLabelText}>6th</Text></View>
-  <Text style={[s.loserSourceLabel,{left:112,top:446}]}>Loser of 15</Text>
-  <Text style={[s.loserSourceLabel,{left:282,top:304}]}>Loser of 13</Text>
-  <Text style={[s.loserSourceLabel,{left:282,top:445}]}>Loser of 14</Text>
-  <Text style={[s.loserSourceLabel,{left:452,top:173}]}>Loser of 12</Text>
-  <Text style={[s.loserSourceLabel,{left:452,top:264}]}>Loser of 11</Text>
-  <Text style={[s.loserSourceLabel,{left:452,top:356}]}>Loser of 10</Text>
-  <Text style={[s.loserSourceLabel,{left:452,top:447}]}>Loser of 9</Text>
-  <View style={[s.placeLabel,{left:994,top:360}]}><Text style={s.placeLabelText}>2nd</Text></View>
-  <View style={[s.placeLabel,{left:1092,top:386}]}><Text style={s.placeLabelText}>Winner</Text></View>
-  <WinnerLine left={1164} top={386}/>
+  <View style={[s.placeLabel,{left:406,top:247}]}><Text style={s.placeLabelText}>2nd</Text></View>
+  <View style={[s.placeLabel,{left:504,top:330}]}><Text style={s.placeLabelText}>Winner</Text></View>
+  <WinnerLine left={576} top={330}/>
+  <View style={[s.placeLabel,{left:74,top:740}]}><Text style={s.placeLabelText}>3rd</Text></View>
+  <View style={[s.placeLabel,{left:200,top:628}]}><Text style={s.placeLabelText}>4th</Text></View>
+  <View style={[s.placeLabel,{left:326,top:560}]}><Text style={s.placeLabelText}>5th</Text></View>
+  <View style={[s.placeLabel,{left:326,top:720}]}><Text style={s.placeLabelText}>6th</Text></View>
+  <Text style={[s.loserSourceLabel,{left:100,top:735}]}>Loser of 15</Text>
+  <Text style={[s.loserSourceLabel,{left:229,top:640}]}>Loser of 13</Text>
+  <Text style={[s.loserSourceLabel,{left:229,top:762}]}>Loser of 14</Text>
+  <Text style={[s.loserSourceLabel,{left:604,top:494}]}>Loser of 12</Text>
+  <Text style={[s.loserSourceLabel,{left:604,top:584}]}>Loser of 11</Text>
+  <Text style={[s.loserSourceLabel,{left:604,top:674}]}>Loser of 10</Text>
+  <Text style={[s.loserSourceLabel,{left:604,top:764}]}>Loser of 9</Text>
   {[
-   render('L14',0,388),render('L13',95,318),render('L11',210,247),render('L12',210,388),
-   render('L9',330,220),render('L10',330,361),render('L5',450,107),render('L6',450,198),render('L7',450,290),render('L8',450,381),
-   render('L1',540,95),render('L2',540,164),render('L3',540,257),render('L4',540,326),
-   render('U1',628,32),render('U2',628,101),render('U3',628,170),render('U4',628,239),render('U5',628,308),render('U6',628,377),render('U7',628,446),render('U8',628,515),
-   render('U9',748,67),render('U10',748,205),render('U11',748,343),render('U12',748,481),
-   render('U13',868,135),render('U14',868,412),render('U15',996,273),render('GF',1092,328,16),render('GFR',1092,411,'')
+   render('U1',0,0),render('U2',0,45),render('U3',0,90),render('U4',0,135),render('U5',0,180),render('U6',0,225),render('U7',0,270),render('U8',0,315),
+   render('U9',126,22),render('U10',126,112),render('U11',126,202),render('U12',126,292),render('U13',252,67),render('U14',252,247),render('U15',378,157),render('GF',504,202,16),render('GFR',504,285,''),
+   render('L1',704,470),render('L2',704,560),render('L3',704,650),render('L4',704,740),render('L5',578,448),render('L6',578,538),render('L7',578,628),render('L8',578,718),
+   render('L9',452,493),render('L10',452,673),render('L11',326,493),render('L12',326,673),render('L13',200,583),render('L14',74,673)
  ]}
  </View>;
 }
@@ -806,61 +806,57 @@ function DoubleElim32Canvas({tournament,matches,readyIds,onWinner,onEdit,onBye,d
   return <BracketBox key={id} {...props}/>;
  };
  const p={
-  L30:{left:0,top:706},L29:{left:98,top:588},L27:{left:266,top:510},L28:{left:266,top:742},
-  L25:{left:350,top:296},L26:{left:350,top:647},L21:{left:520,top:220},L22:{left:520,top:410},L23:{left:520,top:600},L24:{left:520,top:790},
-  L17:{left:600,top:128},L18:{left:600,top:223},L19:{left:600,top:318},L20:{left:600,top:413},
-  L9:{left:700,top:106},L10:{left:700,top:201},L11:{left:700,top:296},L12:{left:700,top:391},L13:{left:700,top:486},L14:{left:700,top:581},L15:{left:700,top:676},L16:{left:700,top:771},
-  L1:{left:785,top:86},L2:{left:785,top:181},L3:{left:785,top:276},L4:{left:785,top:371},L5:{left:785,top:466},L6:{left:785,top:561},L7:{left:785,top:656},L8:{left:785,top:751},
-  U1:{left:804,top:40},U2:{left:804,top:85},U3:{left:804,top:130},U4:{left:804,top:175},U5:{left:804,top:220},U6:{left:804,top:265},U7:{left:804,top:310},U8:{left:804,top:355},
-  U9:{left:804,top:400},U10:{left:804,top:445},U11:{left:804,top:490},U12:{left:804,top:535},U13:{left:804,top:580},U14:{left:804,top:625},U15:{left:804,top:670},U16:{left:804,top:715},
-  U17:{left:930,top:62},U18:{left:930,top:152},U19:{left:930,top:242},U20:{left:930,top:332},U21:{left:930,top:422},U22:{left:930,top:512},U23:{left:930,top:602},U24:{left:930,top:692},
-  U25:{left:1050,top:107},U26:{left:1050,top:287},U27:{left:1050,top:467},U28:{left:1050,top:647},
-  U29:{left:1172,top:198},U30:{left:1172,top:558},U31:{left:1256,top:377},GF:{left:1350,top:397},GFR:{left:1350,top:480}
+  U1:{left:0,top:0},U2:{left:0,top:45},U3:{left:0,top:90},U4:{left:0,top:135},U5:{left:0,top:180},U6:{left:0,top:225},U7:{left:0,top:270},U8:{left:0,top:315},
+  U9:{left:0,top:360},U10:{left:0,top:405},U11:{left:0,top:450},U12:{left:0,top:495},U13:{left:0,top:540},U14:{left:0,top:585},U15:{left:0,top:630},U16:{left:0,top:675},
+  U17:{left:122,top:22},U18:{left:122,top:112},U19:{left:122,top:202},U20:{left:122,top:292},U21:{left:122,top:382},U22:{left:122,top:472},U23:{left:122,top:562},U24:{left:122,top:652},
+  U25:{left:244,top:67},U26:{left:244,top:247},U27:{left:244,top:427},U28:{left:244,top:607},U29:{left:366,top:157},U30:{left:366,top:517},U31:{left:488,top:337},GF:{left:610,top:397},GFR:{left:610,top:480},
+  L1:{left:770,top:820},L2:{left:770,top:890},L3:{left:770,top:960},L4:{left:770,top:1030},L5:{left:770,top:1100},L6:{left:770,top:1170},L7:{left:770,top:1240},L8:{left:770,top:1310},
+  L9:{left:648,top:795},L10:{left:648,top:865},L11:{left:648,top:935},L12:{left:648,top:1005},L13:{left:648,top:1075},L14:{left:648,top:1145},L15:{left:648,top:1215},L16:{left:648,top:1285},
+  L17:{left:526,top:830},L18:{left:526,top:970},L19:{left:526,top:1110},L20:{left:526,top:1250},L21:{left:404,top:800},L22:{left:404,top:940},L23:{left:404,top:1080},L24:{left:404,top:1220},
+  L25:{left:282,top:870},L26:{left:282,top:1150},L27:{left:190,top:920},L28:{left:190,top:1220},L29:{left:98,top:1070},L30:{left:0,top:1120}
  } satisfies Record<string,BoxPoint>;
  return <View style={s.template32Area}>
   <PairConnector a={p.U1} b={p.U2} to={p.U17}/><PairConnector a={p.U3} b={p.U4} to={p.U18}/><PairConnector a={p.U5} b={p.U6} to={p.U19}/><PairConnector a={p.U7} b={p.U8} to={p.U20}/>
   <PairConnector a={p.U9} b={p.U10} to={p.U21}/><PairConnector a={p.U11} b={p.U12} to={p.U22}/><PairConnector a={p.U13} b={p.U14} to={p.U23}/><PairConnector a={p.U15} b={p.U16} to={p.U24}/>
   <PairConnector a={p.U17} b={p.U18} to={p.U25}/><PairConnector a={p.U19} b={p.U20} to={p.U26}/><PairConnector a={p.U21} b={p.U22} to={p.U27}/><PairConnector a={p.U23} b={p.U24} to={p.U28}/>
-  <PairConnector a={p.U25} b={p.U26} to={p.U29}/><PairConnector a={p.U27} b={p.U28} to={p.U30}/><PairConnector a={p.U29} b={p.U30} to={p.U31}/><StepConnector from={p.U31} to={p.GF}/><EndConnector from={p.GF} left={1350} top={428}/>
+  <PairConnector a={p.U25} b={p.U26} to={p.U29}/><PairConnector a={p.U27} b={p.U28} to={p.U30}/><PairConnector a={p.U29} b={p.U30} to={p.U31}/><StepConnector from={p.U31} to={p.GF}/><EndConnector from={p.GF} left={610} top={430}/>
   <StepConnector from={p.L1} to={p.L9}/><StepConnector from={p.L2} to={p.L10}/><StepConnector from={p.L3} to={p.L11}/><StepConnector from={p.L4} to={p.L12}/>
   <StepConnector from={p.L5} to={p.L13}/><StepConnector from={p.L6} to={p.L14}/><StepConnector from={p.L7} to={p.L15}/><StepConnector from={p.L8} to={p.L16}/>
   <PairConnector a={p.L9} b={p.L10} to={p.L17}/><PairConnector a={p.L11} b={p.L12} to={p.L18}/><PairConnector a={p.L13} b={p.L14} to={p.L19}/><PairConnector a={p.L15} b={p.L16} to={p.L20}/>
   <StepConnector from={p.L17} to={p.L21}/><StepConnector from={p.L18} to={p.L22}/><StepConnector from={p.L19} to={p.L23}/><StepConnector from={p.L20} to={p.L24}/>
   <PairConnector a={p.L21} b={p.L22} to={p.L25}/><PairConnector a={p.L23} b={p.L24} to={p.L26}/><StepConnector from={p.L25} to={p.L27}/><StepConnector from={p.L26} to={p.L28}/>
   <PairConnector a={p.L27} b={p.L28} to={p.L29}/><StepConnector from={p.L29} to={p.L30}/>
-  <View style={[s.placeLabel,{left:98,top:763}]}><Text style={s.placeLabelText}>3rd</Text></View>
-  <View style={[s.placeLabel,{left:193,top:681}]}><Text style={s.placeLabelText}>4th</Text></View>
-  <View style={[s.placeLabel,s.widePlaceLabel,{left:280,top:631}]}><Text style={s.placeLabelText}>5th-6th</Text></View>
-  <View style={[s.placeLabel,s.widePlaceLabel,{left:365,top:549}]}><Text style={s.placeLabelText}>7th-8th</Text></View>
-  <View style={[s.placeLabel,{left:1256,top:428}]}><Text style={s.placeLabelText}>2nd</Text></View>
-  <View style={[s.placeLabel,{left:1350,top:455}]}><Text style={s.placeLabelText}>Winner</Text></View>
-  <WinnerLine left={1422} top={455}/>
-  <Text style={[s.loserSourceLabel,{left:112,top:762}]}>Loser of 31</Text>
-  <Text style={[s.loserSourceLabel,{left:285,top:558}]}>Loser of 30</Text>
-  <Text style={[s.loserSourceLabel,{left:285,top:790}]}>Loser of 29</Text>
-  <Text style={[s.loserSourceLabel,{left:455,top:268}]}>Loser of 26</Text>
-  <Text style={[s.loserSourceLabel,{left:455,top:458}]}>Loser of 25</Text>
-  <Text style={[s.loserSourceLabel,{left:455,top:648}]}>Loser of 28</Text>
-  <Text style={[s.loserSourceLabel,{left:455,top:838}]}>Loser of 27</Text>
-  <Text style={[s.loserSourceLabel,{left:642,top:158}]}>Loser of 24</Text>
-  <Text style={[s.loserSourceLabel,{left:642,top:253}]}>Loser of 23</Text>
-  <Text style={[s.loserSourceLabel,{left:642,top:348}]}>Loser of 22</Text>
-  <Text style={[s.loserSourceLabel,{left:642,top:443}]}>Loser of 21</Text>
-  <Text style={[s.loserSourceLabel,{left:642,top:538}]}>Loser of 20</Text>
-  <Text style={[s.loserSourceLabel,{left:642,top:633}]}>Loser of 19</Text>
-  <Text style={[s.loserSourceLabel,{left:642,top:728}]}>Loser of 18</Text>
-  <Text style={[s.loserSourceLabel,{left:642,top:823}]}>Loser of 17</Text>
+  <View style={[s.placeLabel,{left:508,top:442}]}><Text style={s.placeLabelText}>2nd</Text></View>
+  <View style={[s.placeLabel,{left:610,top:525}]}><Text style={s.placeLabelText}>Winner</Text></View>
+  <WinnerLine left={682} top={525}/>
+  <View style={[s.placeLabel,{left:98,top:1142}]}><Text style={s.placeLabelText}>3rd</Text></View>
+  <View style={[s.placeLabel,{left:190,top:1105}]}><Text style={s.placeLabelText}>4th</Text></View>
+  <View style={[s.placeLabel,s.widePlaceLabel,{left:282,top:1020}]}><Text style={s.placeLabelText}>5th-6th</Text></View>
+  <View style={[s.placeLabel,s.widePlaceLabel,{left:404,top:1050}]}><Text style={s.placeLabelText}>7th-8th</Text></View>
+  <Text style={[s.loserSourceLabel,{left:112,top:1182}]}>Loser of 31</Text>
+  <Text style={[s.loserSourceLabel,{left:215,top:972}]}>Loser of 30</Text>
+  <Text style={[s.loserSourceLabel,{left:215,top:1272}]}>Loser of 29</Text>
+  <Text style={[s.loserSourceLabel,{left:310,top:924}]}>Loser of 26</Text>
+  <Text style={[s.loserSourceLabel,{left:310,top:1204}]}>Loser of 25</Text>
+  <Text style={[s.loserSourceLabel,{left:432,top:854}]}>Loser of 28</Text>
+  <Text style={[s.loserSourceLabel,{left:432,top:994}]}>Loser of 27</Text>
+  <Text style={[s.loserSourceLabel,{left:432,top:1134}]}>Loser of 24</Text>
+  <Text style={[s.loserSourceLabel,{left:432,top:1274}]}>Loser of 23</Text>
+  <Text style={[s.loserSourceLabel,{left:676,top:844}]}>Loser of 22</Text>
+  <Text style={[s.loserSourceLabel,{left:676,top:914}]}>Loser of 21</Text>
+  <Text style={[s.loserSourceLabel,{left:676,top:984}]}>Loser of 20</Text>
+  <Text style={[s.loserSourceLabel,{left:676,top:1054}]}>Loser of 19</Text>
+  <Text style={[s.loserSourceLabel,{left:676,top:1124}]}>Loser of 18</Text>
+  <Text style={[s.loserSourceLabel,{left:676,top:1194}]}>Loser of 17</Text>
   {[
-   render('L30',0,706),render('L29',98,588),render('L27',266,510),render('L28',266,742),
-   render('L25',350,296),render('L26',350,647),render('L21',520,220),render('L22',520,410),render('L23',520,600),render('L24',520,790),
-   render('L17',600,128),render('L18',600,223),render('L19',600,318),render('L20',600,413),
-   render('L9',700,106),render('L10',700,201),render('L11',700,296),render('L12',700,391),render('L13',700,486),render('L14',700,581),render('L15',700,676),render('L16',700,771),
-   render('L1',785,86),render('L2',785,181),render('L3',785,276),render('L4',785,371),render('L5',785,466),render('L6',785,561),render('L7',785,656),render('L8',785,751),
-   render('U1',804,40),render('U2',804,85),render('U3',804,130),render('U4',804,175),render('U5',804,220),render('U6',804,265),render('U7',804,310),render('U8',804,355),
-   render('U9',804,400),render('U10',804,445),render('U11',804,490),render('U12',804,535),render('U13',804,580),render('U14',804,625),render('U15',804,670),render('U16',804,715),
-   render('U17',930,62),render('U18',930,152),render('U19',930,242),render('U20',930,332),render('U21',930,422),render('U22',930,512),render('U23',930,602),render('U24',930,692),
-   render('U25',1050,107),render('U26',1050,287),render('U27',1050,467),render('U28',1050,647),
-   render('U29',1172,198),render('U30',1172,558),render('U31',1256,377),render('GF',1350,397,32),render('GFR',1350,480,'')
+   render('U1',0,0),render('U2',0,45),render('U3',0,90),render('U4',0,135),render('U5',0,180),render('U6',0,225),render('U7',0,270),render('U8',0,315),
+   render('U9',0,360),render('U10',0,405),render('U11',0,450),render('U12',0,495),render('U13',0,540),render('U14',0,585),render('U15',0,630),render('U16',0,675),
+   render('U17',122,22),render('U18',122,112),render('U19',122,202),render('U20',122,292),render('U21',122,382),render('U22',122,472),render('U23',122,562),render('U24',122,652),
+   render('U25',244,67),render('U26',244,247),render('U27',244,427),render('U28',244,607),render('U29',366,157),render('U30',366,517),render('U31',488,337),render('GF',610,397,32),render('GFR',610,480,''),
+   render('L1',770,820),render('L2',770,890),render('L3',770,960),render('L4',770,1030),render('L5',770,1100),render('L6',770,1170),render('L7',770,1240),render('L8',770,1310),
+   render('L9',648,795),render('L10',648,865),render('L11',648,935),render('L12',648,1005),render('L13',648,1075),render('L14',648,1145),render('L15',648,1215),render('L16',648,1285),
+   render('L17',526,830),render('L18',526,970),render('L19',526,1110),render('L20',526,1250),render('L21',404,800),render('L22',404,940),render('L23',404,1080),render('L24',404,1220),
+   render('L25',282,870),render('L26',282,1150),render('L27',190,920),render('L28',190,1220),render('L29',98,1070),render('L30',0,1120)
   ]}
  </View>;
 }
@@ -908,8 +904,8 @@ const s=StyleSheet.create({
  canvas:{width:1320,minHeight:760,backgroundColor:'#000',position:'relative',paddingTop:92},
  single16Canvas:{width:580,minHeight:520,paddingTop:132},
  single32Canvas:{width:680,minHeight:890,paddingTop:132},
- doubleCanvas:{width:1300,minHeight:660,paddingTop:120},
- double32Canvas:{width:1560,minHeight:980,paddingTop:120},
+ doubleCanvas:{width:960,minHeight:960,paddingTop:120},
+ double32Canvas:{width:1080,minHeight:1520,paddingTop:120},
  castCanvas:{paddingTop:8,minHeight:620},
  bracketLogo:{position:'absolute',top:28,left:12,width:126,height:82},
  title:{color:'#fff',fontSize:24,fontWeight:'900',margin:18},
@@ -924,8 +920,8 @@ const s=StyleSheet.create({
  bracketArea:{paddingLeft:0,paddingTop:8},
  single16Area:{width:580,height:380,position:'relative'},
  single32Area:{width:680,height:740,position:'relative'},
- templateArea:{width:1300,height:610,position:'relative'},
- template32Area:{width:1560,height:890,position:'relative'},
+ templateArea:{width:860,height:820,position:'relative'},
+ template32Area:{width:900,height:1380,position:'relative'},
  templateMatch:{position:'absolute',width:102,height:48},
  connectorLine:{position:'absolute',backgroundColor:bracketColors.line,zIndex:0},
  bracketSideLabel:{position:'absolute',height:20,borderColor:bracketColors.source,borderWidth:1,backgroundColor:'#061206',alignItems:'center',justifyContent:'center'},
