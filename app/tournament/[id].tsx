@@ -95,6 +95,33 @@ function shouldShowSkillLevels(settings:AppSettings){
  return settings.raceChartMode==='custom'&&settings.skillLevelsEnabled;
 }
 
+function raceSettingsSnapshot(settings:AppSettings){
+ return {
+  raceChartMode:settings.raceChartMode,
+  skillLevelsEnabled:settings.skillLevelsEnabled,
+  customRaceChart:settings.customRaceChart,
+  sideRaceTargets:settings.sideRaceTargets
+ };
+}
+
+function sameRaceSettings(tournament:Tournament,settings:AppSettings){
+ const snapshot=raceSettingsSnapshot(settings);
+ return tournament.settings.raceChartMode===snapshot.raceChartMode
+  && tournament.settings.skillLevelsEnabled===snapshot.skillLevelsEnabled
+  && JSON.stringify(tournament.settings.customRaceChart??{})===JSON.stringify(snapshot.customRaceChart)
+  && JSON.stringify(tournament.settings.sideRaceTargets??{})===JSON.stringify(snapshot.sideRaceTargets);
+}
+
+function effectiveRaceSettings(tournament:Tournament,settings:AppSettings):AppSettings{
+ return {
+  ...settings,
+  raceChartMode:tournament.settings.raceChartMode??settings.raceChartMode,
+  skillLevelsEnabled:tournament.settings.skillLevelsEnabled??settings.skillLevelsEnabled,
+  customRaceChart:tournament.settings.customRaceChart??settings.customRaceChart,
+  sideRaceTargets:tournament.settings.sideRaceTargets??settings.sideRaceTargets
+ };
+}
+
 const payoutPlaces=['Winner','2nd','3rd','4th','5th','6th','7th','8th'];
 
 function payoutRows(t:Tournament):PayoutRow[]{
@@ -145,6 +172,7 @@ export default function TournamentScreen(){
  const colors=getTheme(settings.appearance);
  const found=get(id);
  const t=found?normalize(found):undefined;
+ const raceSettings=t?effectiveRaceSettings(t,settings):settings;
  const syncJoinToken=participantMode?joinToken:t?.settings.joinToken;
  const syncRef=useRef<ReturnType<typeof openTournamentSync>|null>(null);
  const [syncStatus,setSyncStatus]=useState<SyncStatus>(realtimeConfigured()?'connecting':'unconfigured');
@@ -183,12 +211,19 @@ export default function TournamentScreen(){
   if(found&&!found.settings.joinToken&&t) update(t);
  },[found,t,update]);
  useEffect(()=>{
+  if(!t||participantMode||sameRaceSettings(t,settings))return;
+  const stamped={...t,settings:{...t.settings,...raceSettingsSnapshot(settings)},updatedAt:new Date().toISOString()};
+  update(stamped);
+  if(syncStatus==='connected')syncRef.current?.publish(stamped);
+ },[t?.id,t?.updatedAt,t?.settings.raceChartMode,t?.settings.skillLevelsEnabled,t?.settings.customRaceChart,t?.settings.sideRaceTargets,participantMode,settings.raceChartMode,settings.skillLevelsEnabled,settings.customRaceChart,settings.sideRaceTargets,syncStatus,update]);
+ useEffect(()=>{
   if(!t||participantMode||syncStatus!=='connected')return;
-  syncRef.current?.publish(t);
- },[t?.id,t?.updatedAt,participantMode,syncStatus]);
+  syncRef.current?.publish({...t,settings:{...t.settings,...raceSettingsSnapshot(settings)}});
+ },[t?.id,t?.updatedAt,participantMode,syncStatus,settings.raceChartMode,settings.skillLevelsEnabled,settings.customRaceChart,settings.sideRaceTargets]);
  if(!t)return <View style={[s.page,{backgroundColor:colors.bg}]}><Text style={[s.title,{color:colors.text}]}>{realtimeConfigured()?'Joining tournament...':'Tournament not found'}</Text><Text style={[s.muted,{color:colors.muted}]}>{realtimeConfigured()?`Sync status: ${syncStatus}`:'Realtime sync is not configured on this build.'}</Text><Button title="Home" onPress={()=>router.replace('/')}/></View>;
  const save=(next:Tournament)=>{
-  const stamped={...next,updatedAt:new Date().toISOString()};
+  const raced=participantMode?next:{...next,settings:{...next.settings,...raceSettingsSnapshot(settings)}};
+  const stamped={...raced,updatedAt:new Date().toISOString()};
   update(stamped);
   syncRef.current?.publish(stamped);
  };
@@ -270,7 +305,7 @@ const confirmWinner=()=>{
  if(participantMode&&(!winnerMatch.ready||winnerMatch.complete))return;
  const playerA=t.players.find(player=>player.id===winnerMatch.playerIds[0]);
  const playerB=t.players.find(player=>player.id===winnerMatch.playerIds[1]);
- const race=raceTargets(playerA,playerB,settings,t,winnerMatch.side);
+ const race=raceTargets(playerA,playerB,raceSettings,t,winnerMatch.side);
  if(race){
   const winnerIndex=winnerMatch.playerIds[0]===winnerPickId?0:1;
   const winnerScore=scoreFor(t.scores,winnerMatch.id)[winnerPickId]??0;
@@ -288,7 +323,7 @@ const confirmWinner=()=>{
   if(!match||!match.ready||match.complete)return;
   const playerA=t.players.find(player=>player.id===match.playerIds[0]);
   const playerB=t.players.find(player=>player.id===match.playerIds[1]);
-  if(!raceTargets(playerA,playerB,settings,t,match.side))return;
+  if(!raceTargets(playerA,playerB,raceSettings,t,match.side))return;
   setPendingPoint({matchId,playerId});
  };
  const confirmPoint=()=>{
@@ -297,7 +332,7 @@ const confirmWinner=()=>{
   if(!match || match.complete){setPendingPoint(null);return;}
   const playerA=t.players.find(player=>player.id===match.playerIds[0]);
   const playerB=t.players.find(player=>player.id===match.playerIds[1]);
- const race=raceTargets(playerA,playerB,settings,t,match.side);
+ const race=raceTargets(playerA,playerB,raceSettings,t,match.side);
  if(!race){setPendingPoint(null);return;}
  const nextScores=withPoint(t.scores,match.id,pendingPoint.playerId);
  save({...t,status:'active',scores:nextScores});
@@ -309,7 +344,7 @@ const confirmWinner=()=>{
   if(!match)return;
   const playerA=t.players.find(player=>player.id===match.playerIds[0]);
   const playerB=t.players.find(player=>player.id===match.playerIds[1]);
- const race=raceTargets(playerA,playerB,settings,t,match.side);
+ const race=raceTargets(playerA,playerB,raceSettings,t,match.side);
  if(!race)return;
  const nextScores=withScoreDelta(t.scores,matchId,playerId,delta);
  save({...t,status:'active',scores:nextScores});
@@ -410,18 +445,18 @@ const confirmWinner=()=>{
     </View>}
     {!castMode&&<View style={s.statusPanel}><Text style={s.statusText}>{t.status==='active'?'Tournament Started':t.status==='complete'?'Tournament Complete':'Tourney Not Started'}</Text></View>}
     {!castMode&&<View style={s.readyPanel}><Text style={s.statusText}>Playable Matches:</Text><Text style={s.readyCount}>{ready.length}</Text></View>}
-   <BracketCanvas tournament={t} matches={resolved} readyIds={new Set(ready.map(match=>match.id))} onWinner={chooseWinner} onEdit={participantMode?()=>{}:editMatch} onBye={seed=>openPlayers(seed)} director={!participantMode} readyColor={settings.readyMatchColor} playerDisplay={settings.playerDisplay} settings={settings} presentation={castMode}/>
+  <BracketCanvas tournament={t} matches={resolved} readyIds={new Set(ready.map(match=>match.id))} onWinner={chooseWinner} onEdit={participantMode?()=>{}:editMatch} onBye={seed=>openPlayers(seed)} director={!participantMode} readyColor={settings.readyMatchColor} playerDisplay={settings.playerDisplay} settings={raceSettings} presentation={castMode}/>
    </View>
    </View>
    </ScrollView>
   </ScrollView>
-  <PlayerModal visible={playersOpen} tournament={t} draftTitle={draftTitle} setDraftTitle={setDraftTitle} directorPin={directorPin} setDirectorPin={setDirectorPin} directorPinConfirm={directorPinConfirm} setDirectorPinConfirm={setDirectorPinConfirm} playerName={playerName} setPlayerName={setPlayerName} playerSkill={playerSkill} setPlayerSkill={setPlayerSkill} selectedId={selectedId} setSelectedId={setSelectedId} targetByeSeed={targetByeSeed} addPlayer={addPlayer} removePlayer={removePlayer} changePlayer={changePlayer} confirmPlayers={confirmPlayers} close={()=>{setTargetByeSeed(null);setPlayersOpen(false);}}/>
+  <PlayerModal visible={playersOpen} tournament={t} raceSettings={raceSettings} draftTitle={draftTitle} setDraftTitle={setDraftTitle} directorPin={directorPin} setDirectorPin={setDirectorPin} directorPinConfirm={directorPinConfirm} setDirectorPinConfirm={setDirectorPinConfirm} playerName={playerName} setPlayerName={setPlayerName} playerSkill={playerSkill} setPlayerSkill={setPlayerSkill} selectedId={selectedId} setSelectedId={setSelectedId} targetByeSeed={targetByeSeed} addPlayer={addPlayer} removePlayer={removePlayer} changePlayer={changePlayer} confirmPlayers={confirmPlayers} close={()=>{setTargetByeSeed(null);setPlayersOpen(false);}}/>
   <StartModal visible={startOpen} defaultMode={settings.randomizeDefault} confirm={confirmStart} close={()=>setStartOpen(false)}/>
   <NoticeModal visible={!!startBlocker} title="Tournament cannot start" message={startBlocker??''} close={()=>setStartBlocker(null)}/>
   <EndTournamentModal visible={endOpen} confirm={confirmEndTournament} close={()=>setEndOpen(false)}/>
   <PayoutModal visible={payoutOpen} rows={payoutRows(t)} onChange={updatePayout} close={()=>setPayoutOpen(false)}/>
   <CastDeviceModal visible={castPickerOpen} status={castStatus} search={searchCastDevices} useThisScreen={startCast} close={()=>setCastPickerOpen(false)}/>
-  <WinnerModal visible={!!winnerMatch} match={winnerMatch} players={t.players} selectedId={winnerPickId} setSelectedId={setWinnerPickId} race={winnerMatch?raceTargets(t.players.find(player=>player.id===winnerMatch.playerIds[0]),t.players.find(player=>player.id===winnerMatch.playerIds[1]),settings,t,winnerMatch.side):null} scores={winnerMatch?scoreFor(t.scores,winnerMatch.id):{}} director={!participantMode} onPoint={requestPoint} onScoreChange={changeScore} confirm={confirmWinner} close={()=>{setWinnerMatchId(null);setWinnerPickId(null);}}/>
+  <WinnerModal visible={!!winnerMatch} match={winnerMatch} players={t.players} selectedId={winnerPickId} setSelectedId={setWinnerPickId} race={winnerMatch?raceTargets(t.players.find(player=>player.id===winnerMatch.playerIds[0]),t.players.find(player=>player.id===winnerMatch.playerIds[1]),raceSettings,t,winnerMatch.side):null} scores={winnerMatch?scoreFor(t.scores,winnerMatch.id):{}} director={!participantMode} onPoint={requestPoint} onScoreChange={changeScore} confirm={confirmWinner} close={()=>{setWinnerMatchId(null);setWinnerPickId(null);}}/>
   <ConfirmPointModal visible={!!pendingPoint} player={t.players.find(player=>player.id===pendingPoint?.playerId)} confirm={confirmPoint} close={()=>setPendingPoint(null)}/>
   <Modal transparent visible={qrOpen} animationType="fade" onRequestClose={()=>setQrOpen(false)}>
    <QrModal tournament={t} syncStatus={syncStatus} close={()=>setQrOpen(false)}/>
@@ -431,11 +466,11 @@ const confirmWinner=()=>{
 
 function InfoRow({label,value}:{label:string;value:string}){return <View style={s.infoRow}><Text style={s.infoLabel}>{label}</Text><Text style={s.infoValue}>{value}</Text></View>;}
 
-function PlayerModal({visible,tournament,draftTitle,setDraftTitle,directorPin,setDirectorPin,directorPinConfirm,setDirectorPinConfirm,playerName,setPlayerName,playerSkill,setPlayerSkill,selectedId,setSelectedId,targetByeSeed,addPlayer,removePlayer,changePlayer,confirmPlayers,close}:{visible:boolean;tournament:Tournament;draftTitle:string;setDraftTitle:(v:string)=>void;directorPin:string;setDirectorPin:(v:string)=>void;directorPinConfirm:string;setDirectorPinConfirm:(v:string)=>void;playerName:string;setPlayerName:(v:string)=>void;playerSkill:number;setPlayerSkill:(v:number)=>void;selectedId:string|null;setSelectedId:(v:string|null)=>void;targetByeSeed:number|null;addPlayer:()=>void;removePlayer:()=>void;changePlayer:()=>void;confirmPlayers:()=>void;close:()=>void}){
+function PlayerModal({visible,tournament,raceSettings,draftTitle,setDraftTitle,directorPin,setDirectorPin,directorPinConfirm,setDirectorPinConfirm,playerName,setPlayerName,playerSkill,setPlayerSkill,selectedId,setSelectedId,targetByeSeed,addPlayer,removePlayer,changePlayer,confirmPlayers,close}:{visible:boolean;tournament:Tournament;raceSettings:AppSettings;draftTitle:string;setDraftTitle:(v:string)=>void;directorPin:string;setDirectorPin:(v:string)=>void;directorPinConfirm:string;setDirectorPinConfirm:(v:string)=>void;playerName:string;setPlayerName:(v:string)=>void;playerSkill:number;setPlayerSkill:(v:number)=>void;selectedId:string|null;setSelectedId:(v:string|null)=>void;targetByeSeed:number|null;addPlayer:()=>void;removePlayer:()=>void;changePlayer:()=>void;confirmPlayers:()=>void;close:()=>void}){
  const duplicates=duplicatePlayerNames(tournament.players);
  const {settings}=useAppSettings();
  const colors=getTheme(settings.appearance);
- const showSkillLevels=shouldShowSkillLevels(settings);
+ const showSkillLevels=shouldShowSkillLevels(raceSettings);
  const canEditPin=tournament.status!=='active';
  const setPin=(value:string)=>setDirectorPin(value.replace(/\D/g,'').slice(0,4));
  const setPinConfirm=(value:string)=>setDirectorPinConfirm(value.replace(/\D/g,'').slice(0,4));
