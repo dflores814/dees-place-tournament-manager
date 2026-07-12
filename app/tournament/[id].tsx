@@ -633,6 +633,13 @@ function displayPlayer(player:Player,mode:PlayerDisplay){
  if(mode==='seed-name') return `${player.seed}. ${player.name}`;
  return player.name;
 }
+function fittedNameStyle(label:string){
+ const length=label.trim().length;
+ if(length>28)return s.slotTextTiny;
+ if(length>20)return s.slotTextSmall;
+ if(length>14)return s.slotTextMedium;
+ return null;
+}
 function compactRaceLabel(label:string){
  const sideRace=label.match(/^Race to (\d+)/);
  return sideRace?.[1]?`R${sideRace[1]}`:label.replace('Race ','');
@@ -873,7 +880,7 @@ function BracketBox({tournament,match,ready,onWinner,onEdit,onBye,director,ready
  const raceLabel=raceForPlayers(playerA,playerB,settings,match.side);
  const matchScore=scoreFor(tournament.scores,match.id);
  const scoreLabel=raceLabel&&playerA&&playerB?`${matchScore[playerA.id]??0}-${matchScore[playerB.id]??0}`:null;
- const renderSlot=(slot:{label:string;seed:number|null;isBye:boolean},position:'top'|'bottom')=><Pressable disabled={presentation||!director||!slot.isBye||!slot.seed} onPress={()=>slot.seed&&onBye(slot.seed)} style={[s.slotPressable,position==='top'?s.slotTop:s.slotBottom,slot.isBye&&director&&!presentation&&s.byeSlot]}><Text numberOfLines={1} style={[s.slotText,slot.isBye&&s.byeText]}>{slot.label}</Text></Pressable>;
+ const renderSlot=(slot:{label:string;seed:number|null;isBye:boolean},position:'top'|'bottom')=><Pressable disabled={presentation||!director||!slot.isBye||!slot.seed} onPress={()=>slot.seed&&onBye(slot.seed)} style={[s.slotPressable,position==='top'?s.slotTop:s.slotBottom,slot.isBye&&director&&!presentation&&s.byeSlot]}><Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.55} ellipsizeMode="clip" style={[s.slotText,fittedNameStyle(slot.label),slot.isBye&&s.byeText]}>{slot.label}</Text></Pressable>;
  const openMatch=()=>{
   if(match.complete){onEdit(match);return;}
   if(ready)onWinner(match);
@@ -946,6 +953,9 @@ const s=StyleSheet.create({
  slotTop:{top:4},
  slotBottom:{bottom:4},
  slotText:{color:bracketColors.text,fontSize:11,fontWeight:'700',fontFamily:bracketFont,textAlign:'center',height:18,paddingHorizontal:4,textShadowColor:'#000',textShadowRadius:2,textShadowOffset:{width:0,height:1}},
+ slotTextMedium:{fontSize:10},
+ slotTextSmall:{fontSize:9},
+ slotTextTiny:{fontSize:8,paddingHorizontal:2},
  matchRace:{position:'absolute',right:3,bottom:1,color:bracketColors.gold,fontSize:8,fontWeight:'900',fontFamily:bracketFont},
  matchScore:{position:'absolute',left:4,bottom:1,color:bracketColors.score,fontSize:9,fontWeight:'900',fontFamily:bracketFont},
  byeSlot:{backgroundColor:bracketColors.bye},
