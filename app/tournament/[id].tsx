@@ -420,6 +420,10 @@ const confirmWinner=()=>{
   onResponderTerminate:()=>setPinching(false)
  };
  const bracketViewport={minWidth:viewportWidth,minHeight:Math.max(320,viewportHeight-(castMode?0:44))};
+ const bracketScrollContent={
+  minWidth:Math.max(bracketViewport.minWidth,scaledCanvas.width+48),
+  minHeight:Math.max(bracketViewport.minHeight,scaledCanvas.height+96)
+ };
  return <View style={[s.page,{backgroundColor:colors.bg}]}>
   {!castMode&&<View style={[s.toolbar,{backgroundColor:settings.appearance==='light'?'#f3f8ef':'#efefef',paddingTop:insets.top+10}]}>
    <Button title="Home" variant="secondary" onPress={()=>router.replace('/')}/>
@@ -433,8 +437,8 @@ const confirmWinner=()=>{
    {participantMode&&<Text style={s.participantBadge}>Participant mode</Text>}
    <Text style={[s.syncBadge,{color:settings.appearance==='light'?colors.text:'#111'}]}>Sync: {syncStatus}</Text>
   </View>}
-  <ScrollView style={s.scroller} contentContainerStyle={[bracketViewport,s.bracketViewport]} scrollEnabled={!pinching} centerContent>
-   <ScrollView horizontal scrollEnabled={!pinching} contentContainerStyle={[s.horizontalScroller,bracketViewport]}>
+  <ScrollView style={s.scroller} contentContainerStyle={[bracketScrollContent,s.bracketViewport]} scrollEnabled={!pinching} centerContent>
+   <ScrollView horizontal scrollEnabled={!pinching} contentContainerStyle={[s.horizontalScroller,bracketScrollContent]}>
    <View {...pinchHandlers} style={[s.zoomSurface,scaledCanvas]}>
    <View style={[s.canvas,t.bracketType==='16-single'&&s.single16Canvas,t.bracketType==='32-single'&&s.single32Canvas,t.bracketType==='16-double'&&s.doubleCanvas,t.bracketType==='32-double'&&s.double32Canvas,castMode&&s.castCanvas,{transform:[{translateX:canvasBounds.width*(zoom-1)/2},{translateY:canvasBounds.height*(zoom-1)/2},{scale:zoom}]}]}>
     {!castMode&&<Image source={require('../../assets/dees-place-logo.png')} resizeMode="contain" style={s.bracketLogo}/>}
