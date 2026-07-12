@@ -929,8 +929,6 @@ function BracketBox({tournament,match,ready,onWinner,onEdit,onBye,director,ready
  const playerA=tournament.players.find(player=>player.id===match.playerIds[0]);
  const playerB=tournament.players.find(player=>player.id===match.playerIds[1]);
  const raceLabel=raceForPlayers(playerA,playerB,settings,match.side);
- const matchScore=scoreFor(tournament.scores,match.id);
- const scoreLabel=raceLabel&&playerA&&playerB?`${matchScore[playerA.id]??0}-${matchScore[playerB.id]??0}`:null;
  const renderSlot=(slot:{label:string;seed:number|null;isBye:boolean},position:'top'|'bottom')=><Pressable disabled={presentation||!director||!slot.isBye||!slot.seed} onPress={()=>slot.seed&&onBye(slot.seed)} style={[s.slotPressable,position==='top'?s.slotTop:s.slotBottom,slot.isBye&&director&&!presentation&&s.byeSlot]}><Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.55} ellipsizeMode="clip" style={[s.slotText,fittedNameStyle(slot.label),slot.isBye&&s.byeText]}>{slot.label}</Text></Pressable>;
  const openMatch=()=>{
   if(match.complete){onEdit(match);return;}
@@ -941,7 +939,6 @@ function BracketBox({tournament,match,ready,onWinner,onEdit,onBye,director,ready
   {renderSlot(slotA,'top')}
   {renderSlot(slotB,'bottom')}
   {raceLabel&&<Text style={s.matchRace}>{compactRaceLabel(raceLabel)}</Text>}
-  {scoreLabel&&<Text style={s.matchScore}>{scoreLabel}</Text>}
  </Pressable>;
 }
 
@@ -1009,7 +1006,6 @@ const s=StyleSheet.create({
  slotTextSmall:{fontSize:9},
  slotTextTiny:{fontSize:8,paddingHorizontal:2},
  matchRace:{position:'absolute',right:3,bottom:1,color:bracketColors.gold,fontSize:8,fontWeight:'900',fontFamily:bracketFont},
- matchScore:{position:'absolute',left:4,bottom:1,color:bracketColors.score,fontSize:9,fontWeight:'900',fontFamily:bracketFont},
  byeSlot:{backgroundColor:bracketColors.bye},
  byeText:{color:bracketColors.number,fontWeight:'900'},
  modalShade:{flex:1,backgroundColor:'rgba(0,0,0,.62)',alignItems:'center',justifyContent:'center',padding:12},
