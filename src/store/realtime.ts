@@ -71,6 +71,19 @@ export function openTournamentSync(tournamentId:string,onTournament:(tournament:
  connect();
  return {
   publish:(tournament:Tournament)=>send({type:'publish',tournamentId,tournament,joinToken:tournament.settings.joinToken}),
+  reconnect:()=>{
+   if(closed)return;
+   clearReconnect();
+   open=false;
+   const current=socket;
+   socket=null;
+   if(current){
+    current.onclose=null;
+    current.onerror=null;
+    current.close();
+   }
+   connect();
+  },
   close:()=>{closed=true;clearReconnect();open=false;socket?.close();}
  };
 }

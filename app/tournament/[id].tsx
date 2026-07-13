@@ -155,6 +155,19 @@ function effectiveRaceSettings(tournament:Tournament,settings:AppSettings):AppSe
 
 const payoutPlaces=['Winner','2nd','3rd','4th','5th','6th','7th','8th'];
 
+function syncStatusText(status:SyncStatus){
+ if(status==='connected')return 'Online';
+ if(status==='connecting')return 'Connecting';
+ if(status==='offline')return 'Offline';
+ return 'Not configured';
+}
+
+function syncStatusColor(status:SyncStatus,light:boolean){
+ if(status==='connected')return light?'#17650f':theme.green;
+ if(status==='connecting')return '#e0aa45';
+ return light?'#8b1e1e':'#e95050';
+}
+
 function payoutRows(t:Tournament):PayoutRow[]{
  return payoutPlaces.map(place=>t.payouts?.find(row=>row.place===place)??{place,player:'',amount:''});
 }
@@ -255,6 +268,10 @@ export default function TournamentScreen(){
   syncRef.current?.publish({...t,settings:{...t.settings,...raceSettingsSnapshot(settings)}});
  },[t?.id,t?.updatedAt,participantMode,syncStatus,settings.raceChartMode,settings.skillLevelsEnabled,settings.customRaceChart,settings.sideRaceTargets,settings.skillHandicapTargets]);
  if(!t)return <View style={[s.page,{backgroundColor:colors.bg}]}><Text style={[s.title,{color:colors.text}]}>{realtimeConfigured()?'Joining tournament...':'Tournament not found'}</Text><Text style={[s.muted,{color:colors.muted}]}>{realtimeConfigured()?`Sync status: ${syncStatus}`:'Realtime sync is not configured on this build.'}</Text><Button title="Home" onPress={()=>router.replace('/')}/></View>;
+ const reconnectSync=()=>{
+  setSyncStatus(realtimeConfigured()?'connecting':'unconfigured');
+  syncRef.current?.reconnect();
+ };
  const save=(next:Tournament)=>{
   const raced=participantMode?next:{...next,settings:{...next.settings,...raceSettingsSnapshot(settings)}};
   const stamped={...raced,updatedAt:new Date().toISOString()};
@@ -472,7 +489,8 @@ const confirmWinner=()=>{
    {!participantMode&&<Button title="Cast Screen" variant="secondary" onPress={openCastPicker}/>}
    {!participantMode&&<Button title="End Tournament" variant="danger" onPress={endTournament}/>}
    {participantMode&&<Text style={s.participantBadge}>Participant mode</Text>}
-   <Text style={[s.syncBadge,{color:settings.appearance==='light'?colors.text:'#111'}]}>Sync: {syncStatus}</Text>
+   <Text style={[s.syncBadge,{color:syncStatusColor(syncStatus,settings.appearance==='light')}]}>Sync: {syncStatusText(syncStatus)}</Text>
+   {syncStatus!=='connected'&&syncStatus!=='unconfigured'&&<Button title="Reconnect" variant="secondary" onPress={reconnectSync}/>}
   </View>}
   <ScrollView style={s.scroller} contentContainerStyle={[bracketScrollContent,s.bracketViewport,castMode&&s.castViewport]} scrollEnabled={!pinching&&!castMode} centerContent>
    <ScrollView horizontal scrollEnabled={!pinching&&!castMode} contentContainerStyle={[s.horizontalScroller,bracketScrollContent,castMode&&s.castViewport]}>
@@ -503,7 +521,7 @@ const confirmWinner=()=>{
   <WinnerModal visible={!!winnerMatch} match={winnerMatch} players={t.players} selectedId={winnerPickId} setSelectedId={setWinnerPickId} race={winnerMatch?raceTargets(t.players.find(player=>player.id===winnerMatch.playerIds[0]),t.players.find(player=>player.id===winnerMatch.playerIds[1]),raceSettings,t,winnerMatch.side):null} scores={winnerMatch?scoreFor(t.scores,winnerMatch.id):{}} director={!participantMode} onPoint={requestPoint} onScoreChange={changeScore} confirm={confirmWinner} close={()=>{setWinnerMatchId(null);setWinnerPickId(null);}}/>
   <ConfirmPointModal visible={!!pendingPoint} player={t.players.find(player=>player.id===pendingPoint?.playerId)} confirm={confirmPoint} close={()=>setPendingPoint(null)}/>
   <Modal transparent visible={qrOpen} animationType="fade" onRequestClose={()=>setQrOpen(false)}>
-   <QrModal tournament={t} syncStatus={syncStatus} close={()=>setQrOpen(false)}/>
+   <QrModal tournament={t} syncStatus={syncStatus} reconnect={reconnectSync} close={()=>setQrOpen(false)}/>
   </Modal>
  </View>;
 }
@@ -730,12 +748,12 @@ function WinnerModal({visible,match,players,selectedId,setSelectedId,race,scores
  </Modal>;
 }
 
-function QrModal({tournament,syncStatus,close}:{tournament:Tournament;syncStatus:SyncStatus;close:()=>void}){
+function QrModal({tournament,syncStatus,reconnect,close}:{tournament:Tournament;syncStatus:SyncStatus;reconnect:()=>void;close:()=>void}){
  const {settings}=useAppSettings();
  const colors=getTheme(settings.appearance);
  const joinLink=`deesplacetm:///tournament/${tournament.id}?role=participant&join=${encodeURIComponent(tournament.settings.joinToken??'')}`;
  const qrSource=`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(joinLink)}`;
- return <View style={[s.modalShade,{backgroundColor:colors.shade}]}><View style={[s.qrWindow,{backgroundColor:colors.panel,borderColor:colors.border}]}><Text style={[s.qrTitle,{color:colors.text}]}>Join Tournament</Text><Image source={{uri:qrSource}} style={s.qrImage}/><Text style={s.qrCode}>{tournament.id.slice(0,10).toUpperCase()}</Text><Text style={[s.muted,{color:colors.muted}]}>Only this director QR can join this tournament. Players open in participant mode and can submit match winners.</Text><Text style={syncStatus==='connected'?s.syncReady:s.syncWarning}>{syncStatus==='connected'?'Realtime sync connected.':'Realtime sync is not connected. Set EXPO_PUBLIC_SYNC_URL to enable live updates.'}</Text><Button title="Close" variant="secondary" onPress={close}/></View></View>;
+ return <View style={[s.modalShade,{backgroundColor:colors.shade}]}><View style={[s.qrWindow,{backgroundColor:colors.panel,borderColor:colors.border}]}><Text style={[s.qrTitle,{color:colors.text}]}>Join Tournament</Text><Image source={{uri:qrSource}} style={s.qrImage}/><Text style={s.qrCode}>{tournament.id.slice(0,10).toUpperCase()}</Text><Text style={[s.muted,{color:colors.muted}]}>Only this director QR can join this tournament. Players open in participant mode and can submit match winners.</Text><Text style={[syncStatus==='connected'?s.syncReady:s.syncWarning,{color:syncStatusColor(syncStatus,settings.appearance==='light')}]}>{syncStatus==='connected'?'Sync: Online':`Sync: ${syncStatusText(syncStatus)}`}</Text>{syncStatus!=='connected'&&syncStatus!=='unconfigured'&&<Button title="Reconnect" onPress={reconnect}/>}<Button title="Close" variant="secondary" onPress={close}/></View></View>;
 }
 
 type ReadyColor='red'|'green'|'gold';
