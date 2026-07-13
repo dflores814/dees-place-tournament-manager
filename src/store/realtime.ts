@@ -20,16 +20,37 @@ export function openTournamentSync(tournamentId:string,onTournament:(tournament:
  if(!url){onStatus('unconfigured');return {publish:()=>{},close:()=>{}};}
  let socket:WebSocket|null=null;
  let open=false;
+ let closed=false;
+ let reconnectTimer:ReturnType<typeof setTimeout>|null=null;
+ let reconnectAttempts=0;
  const queue:SyncEnvelope[]=[];
  const send=(message:SyncEnvelope)=>{
   if(socket&&open) socket.send(JSON.stringify(message));
   else queue.push(message);
  };
+ const clearReconnect=()=>{
+  if(reconnectTimer){
+   clearTimeout(reconnectTimer);
+   reconnectTimer=null;
+  }
+ };
+ const scheduleReconnect=()=>{
+  if(closed||reconnectTimer)return;
+  const delay=Math.min(30000,1000*Math.pow(2,Math.min(reconnectAttempts,5)));
+  reconnectAttempts+=1;
+  reconnectTimer=setTimeout(()=>{
+   reconnectTimer=null;
+   connect();
+  },delay);
+ };
+ const connect=()=>{
  try{
   onStatus('connecting');
   socket=new WebSocket(url);
   socket.onopen=()=>{
    open=true;
+   reconnectAttempts=0;
+   clearReconnect();
    onStatus('connected');
    send({type:'subscribe',tournamentId,joinToken});
    while(queue.length) socket?.send(JSON.stringify(queue.shift()));
@@ -41,12 +62,15 @@ export function openTournamentSync(tournamentId:string,onTournament:(tournament:
    }catch{}
   };
   socket.onerror=()=>onStatus('offline');
-  socket.onclose=()=>{open=false;onStatus('offline');};
+  socket.onclose=()=>{open=false;socket=null;if(!closed){onStatus('offline');scheduleReconnect();}};
  }catch{
   onStatus('offline');
+  scheduleReconnect();
  }
+ };
+ connect();
  return {
   publish:(tournament:Tournament)=>send({type:'publish',tournamentId,tournament,joinToken:tournament.settings.joinToken}),
-  close:()=>{open=false;socket?.close();}
+  close:()=>{closed=true;clearReconnect();open=false;socket?.close();}
  };
 }
