@@ -1,6 +1,7 @@
-import { useEffect,useMemo,useRef,useState } from 'react';
+import { useEffect,useMemo,useRef,useState, type ComponentProps } from 'react';
 import { Alert, Image, Modal, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View, useWindowDimensions, type GestureResponderEvent } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useTournaments } from '@/store/TournamentProvider';
 import { nextReadyMatches, recordWinner, removeResultAndDependents, resolveBracket } from '@/domain/bracket16';
 import { labelForBracket, newId } from '@/domain/tournament';
@@ -168,6 +169,20 @@ function syncStatusColor(status:SyncStatus,light:boolean){
  return light?'#8b1e1e':'#e95050';
 }
 
+type ToolbarIconName=ComponentProps<typeof MaterialIcons>['name'];
+function ToolbarIconButton({icon,label,onPress,variant='secondary',disabled=false}:{icon:ToolbarIconName;label:string;onPress:()=>void;variant?:'primary'|'secondary'|'danger';disabled?:boolean}){
+ const buttonStyle=variant==='primary'?s.toolbarPrimaryButton:variant==='danger'?s.toolbarDangerButton:null;
+ return <Pressable
+  accessibilityRole="button"
+  accessibilityLabel={label}
+  disabled={disabled}
+  onPress={onPress}
+  style={({pressed})=>[s.toolbarButton,buttonStyle,disabled&&s.toolbarDisabled,pressed&&s.toolbarPressed]}
+ >
+  <MaterialIcons name={icon} size={23} color="#fff" style={s.toolbarIcon}/>
+ </Pressable>;
+}
+
 function publicViewerUrl(tournament:Tournament){
  const base=syncUrl().replace(/^wss:/,'https:').replace(/^ws:/,'http:').replace(/\/$/,'');
  if(!base)return '';
@@ -196,15 +211,21 @@ function scoreFor(scores:readonly MatchScore[]|undefined,matchId:string){
  return scores?.find(score=>score.matchId===matchId)?.scores??{};
 }
 
-function withScoreDelta(scores:readonly MatchScore[]|undefined,matchId:string,playerId:string,delta:number){
+function withScoreDelta(scores:readonly MatchScore[]|undefined,matchId:string,playerId:string,delta:number,maxScore=Number.POSITIVE_INFINITY){
  const existing=scoreFor(scores,matchId);
- const nextScore={...existing,[playerId]:Math.max(0,(existing[playerId]??0)+delta)};
+ const nextScore={...existing,[playerId]:Math.min(maxScore,Math.max(0,(existing[playerId]??0)+delta))};
  const next:MatchScore={matchId,scores:nextScore,updatedAt:new Date().toISOString()};
  return [...(scores??[]).filter(score=>score.matchId!==matchId),next];
 }
 
-function withPoint(scores:readonly MatchScore[]|undefined,matchId:string,playerId:string){
- return withScoreDelta(scores,matchId,playerId,1);
+function withPoint(scores:readonly MatchScore[]|undefined,matchId:string,playerId:string,maxScore:number){
+ return withScoreDelta(scores,matchId,playerId,1,maxScore);
+}
+
+function raceTargetForPlayer(match:ResolvedMatch,playerId:string,race:{targets:readonly [number,number]}|null){
+ if(!race)return 0;
+ const index=match.playerIds[0]===playerId?0:match.playerIds[1]===playerId?1:-1;
+ return index>=0?race.targets[index]??race.targets[0]:0;
 }
 
 function clamp(value:number,min:number,max:number){
@@ -406,7 +427,10 @@ const confirmWinner=()=>{
   if(!match||!match.ready||match.complete)return;
   const playerA=t.players.find(player=>player.id===match.playerIds[0]);
   const playerB=t.players.find(player=>player.id===match.playerIds[1]);
-  if(!raceTargets(playerA,playerB,raceSettings,t,match.side))return;
+  const race=raceTargets(playerA,playerB,raceSettings,t,match.side);
+  if(!race)return;
+  const target=raceTargetForPlayer(match,playerId,race);
+  if(target<=0 || (scoreFor(t.scores,match.id)[playerId]??0)>=target)return;
   setPendingPoint({matchId,playerId});
  };
  const confirmPoint=()=>{
@@ -414,10 +438,14 @@ const confirmWinner=()=>{
   const match=resolved.find(item=>item.id===pendingPoint.matchId);
   if(!match || match.complete){setPendingPoint(null);return;}
   const playerA=t.players.find(player=>player.id===match.playerIds[0]);
-  const playerB=t.players.find(player=>player.id===match.playerIds[1]);
+ const playerB=t.players.find(player=>player.id===match.playerIds[1]);
  const race=raceTargets(playerA,playerB,raceSettings,t,match.side);
  if(!race){setPendingPoint(null);return;}
- const nextScores=withPoint(t.scores,match.id,pendingPoint.playerId);
+ const target=raceTargetForPlayer(match,pendingPoint.playerId,race);
+ if(target<=0){setPendingPoint(null);return;}
+ const current=scoreFor(t.scores,match.id)[pendingPoint.playerId]??0;
+ if(current>=target){setPendingPoint(null);return;}
+ const nextScores=withPoint(t.scores,match.id,pendingPoint.playerId,target);
  save({...t,status:'active',scores:nextScores});
  setPendingPoint(null);
 };
@@ -426,10 +454,12 @@ const confirmWinner=()=>{
   const match=resolved.find(item=>item.id===matchId);
   if(!match)return;
   const playerA=t.players.find(player=>player.id===match.playerIds[0]);
-  const playerB=t.players.find(player=>player.id===match.playerIds[1]);
+ const playerB=t.players.find(player=>player.id===match.playerIds[1]);
  const race=raceTargets(playerA,playerB,raceSettings,t,match.side);
  if(!race)return;
- const nextScores=withScoreDelta(t.scores,matchId,playerId,delta);
+ const target=raceTargetForPlayer(match,playerId,race);
+ if(target<=0)return;
+ const nextScores=withScoreDelta(t.scores,matchId,playerId,delta,target);
  save({...t,status:'active',scores:nextScores});
 };
  const editMatch=(match:ResolvedMatch)=>{
@@ -532,20 +562,20 @@ const confirmWinner=()=>{
  };
  return <View style={[s.page,{backgroundColor:colors.bg}]}>
   {!castMode&&<View style={[s.toolbar,{paddingTop:insets.top+10}]}>
-   <Button title="⌂" variant="secondary" onPress={()=>router.replace('/')} style={s.toolbarButton} textStyle={s.toolbarIconText}/>
-   {!participantMode&&<Button title="♙" variant="secondary" onPress={()=>openPlayers()} style={s.toolbarButton} textStyle={s.toolbarIconText}/>}
-   {!participantMode&&<Button title="▶" onPress={startTournament} disabled={t.status==='complete'} style={[s.toolbarButton,s.toolbarPrimaryButton]} textStyle={s.toolbarIconText}/>}
-   {!participantMode&&<Button title="▣" variant="secondary" onPress={()=>save(t)} style={s.toolbarButton} textStyle={s.toolbarIconText}/>}
-   {!participantMode&&<Button title="$" variant="secondary" onPress={()=>setPayoutOpen(true)} style={s.toolbarButton} textStyle={s.toolbarIconText}/>}
-   {!participantMode&&<Button title="⚙" variant="secondary" onPress={()=>setDirectorToolsOpen(true)} style={s.toolbarButton} textStyle={s.toolbarIconText}/>}
-   <Button title="#" variant="secondary" onPress={()=>setScoresOpen(true)} style={s.toolbarButton} textStyle={s.toolbarIconText}/>
-   <Button title="★" variant="secondary" onPress={()=>setSkillsOpen(true)} style={s.toolbarButton} textStyle={s.toolbarIconText}/>
-   {!participantMode&&<Button title="▦" variant="secondary" onPress={()=>setQrOpen(true)} style={s.toolbarButton} textStyle={s.toolbarIconText}/>}
-   {!participantMode&&<Button title="⛶" variant="secondary" onPress={openCastPicker} style={s.toolbarButton} textStyle={s.toolbarIconText}/>}
-   {!participantMode&&<Button title="×" variant="danger" onPress={endTournament} style={[s.toolbarButton,s.toolbarDangerButton]} textStyle={s.toolbarIconText}/>}
+   <ToolbarIconButton icon="home" label="Home" onPress={()=>router.replace('/')}/>
+   {!participantMode&&<ToolbarIconButton icon="groups" label="Players" onPress={()=>openPlayers()}/>}
+   {!participantMode&&<ToolbarIconButton icon="play-arrow" label="Start" variant="primary" onPress={startTournament} disabled={t.status==='complete'}/>}
+   {!participantMode&&<ToolbarIconButton icon="save" label="Save" onPress={()=>save(t)}/>}
+   {!participantMode&&<ToolbarIconButton icon="payments" label="Payout" onPress={()=>setPayoutOpen(true)}/>}
+   {!participantMode&&<ToolbarIconButton icon="build" label="Director Tools" onPress={()=>setDirectorToolsOpen(true)}/>}
+   <ToolbarIconButton icon="scoreboard" label="Scores" onPress={()=>setScoresOpen(true)}/>
+   <ToolbarIconButton icon="military-tech" label="Skills" onPress={()=>setSkillsOpen(true)}/>
+   {!participantMode&&<ToolbarIconButton icon="qr-code-2" label="QR" onPress={()=>setQrOpen(true)}/>}
+   {!participantMode&&<ToolbarIconButton icon="cast" label="Cast Screen" onPress={openCastPicker}/>}
+   {!participantMode&&<ToolbarIconButton icon="close" label="End Tournament" variant="danger" onPress={endTournament}/>}
    {participantMode&&<Text style={s.participantBadge}>Participant mode</Text>}
    <Text style={[s.syncBadge,{color:syncStatusColor(syncStatus,settings.appearance==='light')}]}>Sync: {syncStatusText(syncStatus)}</Text>
-   {syncStatus!=='connected'&&syncStatus!=='unconfigured'&&<Button title="↻" variant="secondary" onPress={reconnectSync} style={s.toolbarButton} textStyle={s.toolbarIconText}/>}
+   {syncStatus!=='connected'&&syncStatus!=='unconfigured'&&<ToolbarIconButton icon="refresh" label="Reconnect Sync" onPress={reconnectSync}/>}
   </View>}
   {!castMode&&syncStatus!=='connected'&&<SyncRecoveryBanner status={syncStatus} reconnect={reconnectSync}/>}
   <ScrollView style={s.scroller} contentContainerStyle={[bracketScrollContent,s.bracketViewport,castMode&&s.castViewport]} scrollEnabled={!pinching&&!castMode} nestedScrollEnabled directionalLockEnabled centerContent>
@@ -836,9 +866,8 @@ function WinnerModal({visible,match,players,selectedId,setSelectedId,race,scores
  const colors=getTheme(settings.appearance);
  const [scoreOpen,setScoreOpen]=useState(false);
  const contenders=(match?.playerIds??[]).map(id=>players.find(player=>player.id===id)).filter(Boolean) as Player[];
- const selectedIndex=match?.playerIds[0]===selectedId?0:match?.playerIds[1]===selectedId?1:-1;
  const selectedScore=selectedId?scores[selectedId]??0:0;
- const selectedTarget=selectedIndex>=0?race?.targets[selectedIndex]??0:0;
+ const selectedTarget=selectedId&&match?raceTargetForPlayer(match,selectedId,race):0;
  const canConfirm=!!selectedId&&(!race||selectedScore>=selectedTarget);
  return <Modal transparent visible={visible} animationType="fade" onRequestClose={close}>
   <View style={[s.modalShade,{backgroundColor:colors.shade}]}>
@@ -846,12 +875,18 @@ function WinnerModal({visible,match,players,selectedId,setSelectedId,race,scores
     <View style={s.winnerHeader}><Text style={[s.winnerTitle,{color:colors.muted}]}>MATCH {match?.number} - SELECT WINNER</Text><Pressable onPress={close}><Text style={[s.winnerClose,{color:colors.muted}]}>x</Text></Pressable></View>
     <Text style={[s.winnerHelp,{color:colors.muted}]}>Tap the winner of this match</Text>
     {race&&<Text style={s.raceLabel}>{race.label}</Text>}
-    {contenders.map((player,index)=><View key={player.id}>
-     <Pressable onPress={()=>setSelectedId(player.id)} style={[s.winnerChoice,{backgroundColor:colors.panel,borderColor:colors.border},selectedId===player.id&&s.winnerChoiceSelected]}><Text style={[s.crown,{color:selectedId===player.id?'#fff':colors.text}]}>♔</Text><Text style={[s.winnerChoiceText,{color:colors.text},selectedId===player.id&&s.winnerChoiceSelectedText]}>{player.name}</Text><Text style={[s.scoreText,selectedId===player.id&&s.winnerChoiceSelectedText]}>{scores[player.id]??0}/{race?.targets[index]??'-'}</Text></Pressable>
-     {race&&match&&scoreOpen&&director&&<View style={s.scoreEditRow}><Pressable onPress={()=>onScoreChange(match.id,player.id,-1)} style={s.scoreEditButton}><Text style={s.scoreEditText}>-</Text></Pressable><Text style={s.scoreEditLabel}>Change Score</Text><Pressable onPress={()=>onScoreChange(match.id,player.id,1)} style={s.scoreEditButton}><Text style={s.scoreEditText}>+</Text></Pressable></View>}
-     {race&&match&&!match.complete&&scoreOpen&&!director&&<Button title="ADD POINT" variant="secondary" onPress={()=>onPoint(match.id,player.id)} style={s.addPointButton}/>}
+    {contenders.map((player,index)=>{
+     const selected=selectedId===player.id;
+     const playerScore=scores[player.id]??0;
+     const target=race?.targets[index]??0;
+     const canAddPoint=selected&&target>0&&playerScore<target;
+     return <View key={player.id}>
+     <Pressable onPress={()=>setSelectedId(player.id)} style={[s.winnerChoice,{backgroundColor:colors.panel,borderColor:colors.border},selected&&s.winnerChoiceSelected]}><Text style={[s.crown,{color:selected?'#fff':colors.text}]}>♔</Text><Text style={[s.winnerChoiceText,{color:colors.text},selected&&s.winnerChoiceSelectedText]}>{player.name}</Text><Text style={[s.scoreText,selected&&s.winnerChoiceSelectedText]}>{playerScore}/{target||'-'}</Text></Pressable>
+     {race&&match&&scoreOpen&&director&&selected&&<View style={s.scoreEditRow}><Pressable onPress={()=>onScoreChange(match.id,player.id,-1)} style={s.scoreEditButton}><Text style={s.scoreEditText}>-</Text></Pressable><Text style={s.scoreEditLabel}>Change Score</Text><Pressable disabled={!canAddPoint} onPress={()=>onScoreChange(match.id,player.id,1)} style={[s.scoreEditButton,!canAddPoint&&s.scoreEditDisabled]}><Text style={s.scoreEditText}>+</Text></Pressable></View>}
+     {race&&match&&!match.complete&&scoreOpen&&!director&&selected&&<Button title="ADD POINT" variant="secondary" disabled={!canAddPoint} onPress={()=>onPoint(match.id,player.id)} style={s.addPointButton}/>}
      {index===0&&<Text style={[s.vs,{color:colors.muted}]}>VS</Text>}
-    </View>)}
+    </View>;
+    })}
     {race&&match&&!match.complete&&<Button title={scoreOpen?'HIDE SCORE':'CHANGE SCORE'} variant="secondary" onPress={()=>setScoreOpen(value=>!value)} style={s.changeScoreButton}/>}
     {race&&selectedId&&selectedTarget>0&&selectedScore<selectedTarget&&<Text style={[s.winnerHelp,{color:colors.muted}]}>Selected winner needs {selectedTarget-selectedScore} more point{selectedTarget-selectedScore===1?'':'s'}.</Text>}
     <Button title="CONFIRM" onPress={confirm} disabled={!canConfirm} style={s.confirmWinner}/>
@@ -1124,11 +1159,13 @@ function BracketBox({tournament,match,ready,onWinner,onEdit,onBye,director,ready
 
 const s=StyleSheet.create({
  page:{flex:1,backgroundColor:'#000'},
- toolbar:{minHeight:26,backgroundColor:'rgba(0,0,0,.92)',flexDirection:'row',alignItems:'center',gap:7,paddingHorizontal:8,paddingBottom:8,flexWrap:'wrap',borderBottomColor:'rgba(95,234,40,.22)',borderBottomWidth:1},
- toolbarButton:{width:40,minHeight:38,paddingHorizontal:0,paddingVertical:0,borderRadius:8,backgroundColor:'#061206',borderColor:'rgba(95,234,40,.55)'},
- toolbarPrimaryButton:{backgroundColor:theme.green,borderColor:theme.green},
- toolbarDangerButton:{backgroundColor:'#d94f54',borderColor:'#d94f54'},
- toolbarIconText:{fontSize:19,lineHeight:22,fontWeight:'900'},
+ toolbar:{minHeight:26,backgroundColor:'rgba(0,0,0,.94)',flexDirection:'row',alignItems:'center',gap:8,paddingHorizontal:9,paddingBottom:9,flexWrap:'wrap',borderBottomColor:'rgba(95,234,40,.22)',borderBottomWidth:1},
+ toolbarButton:{width:42,minHeight:40,paddingHorizontal:0,paddingVertical:0,borderRadius:11,backgroundColor:'#071107',borderColor:'rgba(95,234,40,.55)',borderWidth:1,alignItems:'center',justifyContent:'center',shadowColor:'#000',shadowOpacity:.45,shadowRadius:5,shadowOffset:{width:0,height:3},elevation:5},
+ toolbarPrimaryButton:{backgroundColor:theme.green,borderColor:'rgba(255,255,255,.65)',shadowColor:theme.green,shadowOpacity:.45},
+ toolbarDangerButton:{backgroundColor:'#d94f54',borderColor:'rgba(255,255,255,.4)'},
+ toolbarDisabled:{opacity:.38},
+ toolbarPressed:{opacity:.78,transform:[{translateY:1}]},
+ toolbarIcon:{textShadowColor:'rgba(0,0,0,.65)',textShadowOffset:{width:0,height:1},textShadowRadius:2},
  castBar:{minHeight:38,backgroundColor:'#061206',borderBottomColor:theme.green,borderBottomWidth:1,flexDirection:'row',alignItems:'center',justifyContent:'space-between',paddingHorizontal:10,gap:10},
  castTitle:{color:'#fff',fontSize:16,fontWeight:'900',flex:1},
  participantBadge:{backgroundColor:'#061206',borderColor:theme.green,borderWidth:1,color:'#fff',fontSize:12,fontWeight:'900',paddingHorizontal:10,paddingVertical:7},
@@ -1284,6 +1321,7 @@ const s=StyleSheet.create({
  changeScoreButton:{minHeight:34,borderRadius:0,marginTop:4},
  scoreEditRow:{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:8,marginTop:5},
  scoreEditButton:{width:30,height:28,borderRadius:14,backgroundColor:theme.green,alignItems:'center',justifyContent:'center',borderColor:'#fff',borderWidth:1},
+ scoreEditDisabled:{opacity:.35,backgroundColor:'#3b4b3b'},
  scoreEditText:{color:'#fff',fontSize:18,fontWeight:'900',lineHeight:20},
  scoreEditLabel:{color:'#b8cbb8',fontSize:10,fontWeight:'800'},
  vs:{color:'#879487',fontSize:10,textAlign:'center',paddingVertical:8},
