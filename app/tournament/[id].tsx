@@ -202,7 +202,7 @@ function touchDistance(event:GestureResponderEvent){
 function canvasSize(type:BracketType,castMode:boolean){
  if(type==='16-single') return {width:580,height:560};
  if(type==='32-single') return {width:680,height:940};
- if(type==='16-double') return {width:960,height:castMode?820:1020};
+ if(type==='16-double') return {width:860,height:castMode?860:980};
  if(type==='32-double') return {width:1080,height:castMode?1480:1590};
  return {width:1300,height:castMode?620:760};
 }
@@ -829,13 +829,13 @@ function DoubleElim16Canvas({tournament,matches,readyIds,onWinner,onEdit,onBye,d
   return <BracketBox key={id} {...props}/>;
  };
  const p={
-  U1:{left:0,top:0},U2:{left:0,top:45},U3:{left:0,top:90},U4:{left:0,top:135},U5:{left:0,top:180},U6:{left:0,top:225},U7:{left:0,top:270},U8:{left:0,top:315},
-  U9:{left:126,top:22},U10:{left:126,top:112},U11:{left:126,top:202},U12:{left:126,top:292},
-  U13:{left:252,top:67},U14:{left:252,top:247},U15:{left:378,top:157},GF:{left:504,top:202},GFR:{left:504,top:285},
-  L1:{left:704,top:470},L2:{left:704,top:560},L3:{left:704,top:650},L4:{left:704,top:740},
-  L5:{left:578,top:448},L6:{left:578,top:538},L7:{left:578,top:628},L8:{left:578,top:718},
-  L9:{left:452,top:493},L10:{left:452,top:673},L11:{left:326,top:493},L12:{left:326,top:673},
-  L13:{left:200,top:583},L14:{left:74,top:673}
+  U1:{left:0,top:0},U2:{left:0,top:58},U3:{left:0,top:116},U4:{left:0,top:174},U5:{left:0,top:232},U6:{left:0,top:290},U7:{left:0,top:348},U8:{left:0,top:406},
+  U9:{left:126,top:29},U10:{left:126,top:145},U11:{left:126,top:261},U12:{left:126,top:377},
+  U13:{left:252,top:87},U14:{left:252,top:319},U15:{left:378,top:203},GF:{left:504,top:250},GFR:{left:504,top:333},
+  L1:{left:704,top:540},L2:{left:704,top:598},L3:{left:704,top:656},L4:{left:704,top:714},
+  L5:{left:578,top:511},L6:{left:578,top:569},L7:{left:578,top:627},L8:{left:578,top:685},
+  L9:{left:452,top:540},L10:{left:452,top:656},L11:{left:326,top:540},L12:{left:326,top:656},
+  L13:{left:200,top:598},L14:{left:74,top:656}
  } satisfies Record<string,BoxPoint>;
  return <View style={s.templateArea}>
   <PairConnector a={p.U1} b={p.U2} to={p.U9}/><PairConnector a={p.U3} b={p.U4} to={p.U10}/><PairConnector a={p.U5} b={p.U6} to={p.U11}/><PairConnector a={p.U7} b={p.U8} to={p.U12}/>
@@ -843,25 +843,25 @@ function DoubleElim16Canvas({tournament,matches,readyIds,onWinner,onEdit,onBye,d
   <StepConnector from={p.L1} to={p.L5}/><StepConnector from={p.L2} to={p.L6}/><StepConnector from={p.L3} to={p.L7}/><StepConnector from={p.L4} to={p.L8}/>
   <PairConnector a={p.L5} b={p.L6} to={p.L9}/><PairConnector a={p.L7} b={p.L8} to={p.L10}/><StepConnector from={p.L9} to={p.L11}/><StepConnector from={p.L10} to={p.L12}/>
   <PairConnector a={p.L11} b={p.L12} to={p.L13}/><StepConnector from={p.L13} to={p.L14}/>
-  <View style={[s.placeLabel,{left:406,top:247}]}><Text style={s.placeLabelText}>2nd</Text></View>
-  <View style={[s.placeLabel,{left:504,top:330}]}><Text style={s.placeLabelText}>Winner</Text></View>
-  <WinnerLine left={576} top={330}/>
-  <View style={[s.placeLabel,{left:74,top:740}]}><Text style={s.placeLabelText}>3rd</Text></View>
-  <View style={[s.placeLabel,{left:200,top:628}]}><Text style={s.placeLabelText}>4th</Text></View>
-  <View style={[s.placeLabel,{left:326,top:560}]}><Text style={s.placeLabelText}>5th</Text></View>
-  <View style={[s.placeLabel,{left:326,top:720}]}><Text style={s.placeLabelText}>6th</Text></View>
-  <Text style={[s.loserSourceLabel,{left:100,top:735}]}>Loser of 15</Text>
-  <Text style={[s.loserSourceLabel,{left:229,top:640}]}>Loser of 13</Text>
-  <Text style={[s.loserSourceLabel,{left:229,top:762}]}>Loser of 14</Text>
-  <Text style={[s.loserSourceLabel,{left:604,top:494}]}>Loser of 12</Text>
-  <Text style={[s.loserSourceLabel,{left:604,top:584}]}>Loser of 11</Text>
-  <Text style={[s.loserSourceLabel,{left:604,top:674}]}>Loser of 10</Text>
-  <Text style={[s.loserSourceLabel,{left:604,top:764}]}>Loser of 9</Text>
+  <View style={[s.placeLabel,{left:406,top:292}]}><Text style={s.placeLabelText}>2nd</Text></View>
+  <View style={[s.placeLabel,{left:504,top:378}]}><Text style={s.placeLabelText}>Winner</Text></View>
+  <WinnerLine left={576} top={378}/>
+  <View style={[s.placeLabel,{left:74,top:723}]}><Text style={s.placeLabelText}>3rd</Text></View>
+  <View style={[s.placeLabel,{left:200,top:641}]}><Text style={s.placeLabelText}>4th</Text></View>
+  <View style={[s.placeLabel,{left:326,top:590}]}><Text style={s.placeLabelText}>5th</Text></View>
+  <View style={[s.placeLabel,{left:326,top:706}]}><Text style={s.placeLabelText}>6th</Text></View>
+  <Text style={[s.loserSourceLabel,{left:100,top:718}]}>Loser of 15</Text>
+  <Text style={[s.loserSourceLabel,{left:229,top:653}]}>Loser of 13</Text>
+  <Text style={[s.loserSourceLabel,{left:229,top:748}]}>Loser of 14</Text>
+  <Text style={[s.loserSourceLabel,{left:604,top:557}]}>Loser of 12</Text>
+  <Text style={[s.loserSourceLabel,{left:604,top:615}]}>Loser of 11</Text>
+  <Text style={[s.loserSourceLabel,{left:604,top:673}]}>Loser of 10</Text>
+  <Text style={[s.loserSourceLabel,{left:604,top:731}]}>Loser of 9</Text>
   {[
-   render('U1',0,0),render('U2',0,45),render('U3',0,90),render('U4',0,135),render('U5',0,180),render('U6',0,225),render('U7',0,270),render('U8',0,315),
-   render('U9',126,22),render('U10',126,112),render('U11',126,202),render('U12',126,292),render('U13',252,67),render('U14',252,247),render('U15',378,157),render('GF',504,202,16),render('GFR',504,285,''),
-   render('L1',704,470),render('L2',704,560),render('L3',704,650),render('L4',704,740),render('L5',578,448),render('L6',578,538),render('L7',578,628),render('L8',578,718),
-   render('L9',452,493),render('L10',452,673),render('L11',326,493),render('L12',326,673),render('L13',200,583),render('L14',74,673)
+   render('U1',0,0),render('U2',0,58),render('U3',0,116),render('U4',0,174),render('U5',0,232),render('U6',0,290),render('U7',0,348),render('U8',0,406),
+   render('U9',126,29),render('U10',126,145),render('U11',126,261),render('U12',126,377),render('U13',252,87),render('U14',252,319),render('U15',378,203),render('GF',504,250,16),render('GFR',504,333,''),
+   render('L1',704,540),render('L2',704,598),render('L3',704,656),render('L4',704,714),render('L5',578,511),render('L6',578,569),render('L7',578,627),render('L8',578,685),
+   render('L9',452,540),render('L10',452,656),render('L11',326,540),render('L12',326,656),render('L13',200,598),render('L14',74,656)
  ]}
  </View>;
 }
