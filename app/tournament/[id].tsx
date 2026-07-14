@@ -4,7 +4,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useTournaments } from '@/store/TournamentProvider';
 import { nextReadyMatches, recordWinner, removeResultAndDependents, resolveBracket } from '@/domain/bracket16';
 import { labelForBracket, newId } from '@/domain/tournament';
-import { BracketType, MatchScore, PayoutRow, Player, ResolvedMatch, SlotSource, Tournament, TournamentHistoryType } from '@/domain/types';
+import { BracketType, MatchScore, PayoutRow, Player, ResolvedMatch, SlotSource, Tournament } from '@/domain/types';
 import { Button } from '@/components/Button';
 import { getTheme, theme } from '@/theme';
 import { openTournamentSync, realtimeConfigured, SyncStatus } from '@/store/realtime';
@@ -248,7 +248,6 @@ export default function TournamentScreen(){
  const [winnerPickId,setWinnerPickId]=useState<string|null>(null);
  const [pendingPoint,setPendingPoint]=useState<{matchId:string;playerId:string}|null>(null);
  const [draftTitle,setDraftTitle]=useState(t?.name??'');
- const [historyType,setHistoryType]=useState<TournamentHistoryType>(t?.settings.historyType??'singles');
  const [directorPin,setDirectorPin]=useState(t?.settings.directorPinHash??'');
  const [directorPinConfirm,setDirectorPinConfirm]=useState(t?.settings.directorPinHash??'');
  const [zoom,setZoom]=useState(1);
@@ -290,7 +289,6 @@ export default function TournamentScreen(){
  const selected=t.players.find(player=>player.id===selectedId);
  const openPlayers=(seed?:number)=>{
  setDraftTitle(titleIsValid(t.name)?t.name:'');
-  setHistoryType(t.settings.historyType??'singles');
   setDirectorPin(t.settings.directorPinHash??'');
   setDirectorPinConfirm(t.settings.directorPinHash??'');
   setSelectedId(null);
@@ -331,7 +329,7 @@ export default function TournamentScreen(){
   if(t.status!=='active'&&!pinsMatch(directorPin,directorPinConfirm)){Alert.alert('Director PIN does not match','Re-enter the same four digit PIN to confirm it.');return;}
   const duplicates=duplicatePlayerNames(t.players);
   if(duplicates.length){Alert.alert('Duplicate player names',`Fix duplicate names before continuing: ${duplicates.join(', ')}`);return;}
-  save({...t,name:draftTitle.trim(),settings:{...t.settings,historyType,directorPinHash:t.status==='active'?t.settings.directorPinHash??'':directorPin}});
+  save({...t,name:draftTitle.trim(),settings:{...t.settings,directorPinHash:t.status==='active'?t.settings.directorPinHash??'':directorPin}});
   setTargetByeSeed(null);
   setPlayersOpen(false);
  };
@@ -526,7 +524,7 @@ const confirmWinner=()=>{
    </View>
    </ScrollView>
   </ScrollView>
-  <PlayerModal visible={playersOpen} tournament={t} raceSettings={raceSettings} draftTitle={draftTitle} setDraftTitle={setDraftTitle} historyType={historyType} setHistoryType={setHistoryType} directorPin={directorPin} setDirectorPin={setDirectorPin} directorPinConfirm={directorPinConfirm} setDirectorPinConfirm={setDirectorPinConfirm} playerName={playerName} setPlayerName={setPlayerName} playerSkill={playerSkill} setPlayerSkill={setPlayerSkill} selectedId={selectedId} setSelectedId={setSelectedId} targetByeSeed={targetByeSeed} addPlayer={addPlayer} removePlayer={removePlayer} changePlayer={changePlayer} confirmPlayers={confirmPlayers} close={()=>{setTargetByeSeed(null);setPlayersOpen(false);}}/>
+  <PlayerModal visible={playersOpen} tournament={t} raceSettings={raceSettings} draftTitle={draftTitle} setDraftTitle={setDraftTitle} directorPin={directorPin} setDirectorPin={setDirectorPin} directorPinConfirm={directorPinConfirm} setDirectorPinConfirm={setDirectorPinConfirm} playerName={playerName} setPlayerName={setPlayerName} playerSkill={playerSkill} setPlayerSkill={setPlayerSkill} selectedId={selectedId} setSelectedId={setSelectedId} targetByeSeed={targetByeSeed} addPlayer={addPlayer} removePlayer={removePlayer} changePlayer={changePlayer} confirmPlayers={confirmPlayers} close={()=>{setTargetByeSeed(null);setPlayersOpen(false);}}/>
   <StartModal visible={startOpen} defaultMode={settings.randomizeDefault} confirm={confirmStart} close={()=>setStartOpen(false)}/>
   <NoticeModal visible={!!startBlocker} title="Tournament cannot start" message={startBlocker??''} close={()=>setStartBlocker(null)}/>
   <EndTournamentModal visible={endOpen} confirm={confirmEndTournament} close={()=>setEndOpen(false)}/>
@@ -544,7 +542,7 @@ const confirmWinner=()=>{
 
 function InfoRow({label,value}:{label:string;value:string}){return <View style={s.infoRow}><Text style={s.infoLabel}>{label}</Text><Text style={s.infoValue}>{value}</Text></View>;}
 
-function PlayerModal({visible,tournament,raceSettings,draftTitle,setDraftTitle,historyType,setHistoryType,directorPin,setDirectorPin,directorPinConfirm,setDirectorPinConfirm,playerName,setPlayerName,playerSkill,setPlayerSkill,selectedId,setSelectedId,targetByeSeed,addPlayer,removePlayer,changePlayer,confirmPlayers,close}:{visible:boolean;tournament:Tournament;raceSettings:AppSettings;draftTitle:string;setDraftTitle:(v:string)=>void;historyType:TournamentHistoryType;setHistoryType:(v:TournamentHistoryType)=>void;directorPin:string;setDirectorPin:(v:string)=>void;directorPinConfirm:string;setDirectorPinConfirm:(v:string)=>void;playerName:string;setPlayerName:(v:string)=>void;playerSkill:number;setPlayerSkill:(v:number)=>void;selectedId:string|null;setSelectedId:(v:string|null)=>void;targetByeSeed:number|null;addPlayer:()=>void;removePlayer:()=>void;changePlayer:()=>void;confirmPlayers:()=>void;close:()=>void}){
+function PlayerModal({visible,tournament,raceSettings,draftTitle,setDraftTitle,directorPin,setDirectorPin,directorPinConfirm,setDirectorPinConfirm,playerName,setPlayerName,playerSkill,setPlayerSkill,selectedId,setSelectedId,targetByeSeed,addPlayer,removePlayer,changePlayer,confirmPlayers,close}:{visible:boolean;tournament:Tournament;raceSettings:AppSettings;draftTitle:string;setDraftTitle:(v:string)=>void;directorPin:string;setDirectorPin:(v:string)=>void;directorPinConfirm:string;setDirectorPinConfirm:(v:string)=>void;playerName:string;setPlayerName:(v:string)=>void;playerSkill:number;setPlayerSkill:(v:number)=>void;selectedId:string|null;setSelectedId:(v:string|null)=>void;targetByeSeed:number|null;addPlayer:()=>void;removePlayer:()=>void;changePlayer:()=>void;confirmPlayers:()=>void;close:()=>void}){
  const duplicates=duplicatePlayerNames(tournament.players);
  const {settings}=useAppSettings();
  const colors=getTheme(settings.appearance);
@@ -559,11 +557,6 @@ function PlayerModal({visible,tournament,raceSettings,draftTitle,setDraftTitle,h
     <View style={s.playerHeader}><Text style={s.statusPill}>{tournament.status==='active'?'Tournament Started':'Tournament Not Started'}</Text><Text style={[s.count,{color:colors.text}]}>Player Count: {tournament.players.length} / {tournament.capacity}</Text></View>
     <Text style={[s.label,{color:colors.text}]}>Tournament Title *</Text><TextInput value={draftTitle} onChangeText={setDraftTitle} placeholder="Enter tournament title" placeholderTextColor="#777" style={[s.whiteInput,{backgroundColor:colors.input,color:colors.inputText},!titleIsValid(draftTitle)&&s.requiredInput]}/>
     {!titleIsValid(draftTitle)&&<Text style={s.validationText}>Tournament title is required before continuing.</Text>}
-    <Text style={[s.label,{color:colors.text}]}>Tournament History Type</Text>
-    <View style={s.historyTypeRow}>
-     <Button title="Singles" variant={historyType==='singles'?'primary':'secondary'} onPress={()=>setHistoryType('singles')} style={s.historyTypeButton}/>
-     <Button title="Teams" variant={historyType==='teams'?'primary':'secondary'} onPress={()=>setHistoryType('teams')} style={s.historyTypeButton}/>
-    </View>
     <Text style={[s.label,{color:colors.text}]}>Tournament Director PIN *</Text><TextInput value={directorPin} onChangeText={setPin} editable={canEditPin} secureTextEntry keyboardType="number-pad" maxLength={4} placeholder="4 digits" placeholderTextColor="#777" style={[s.whiteInput,{backgroundColor:canEditPin?colors.input:colors.panel2,color:colors.inputText},!pinIsValid(directorPin)&&tournament.status!=='active'&&s.requiredInput]}/>
     <Text style={[s.label,{color:colors.text}]}>Confirm Director PIN *</Text><TextInput value={directorPinConfirm} onChangeText={setPinConfirm} editable={canEditPin} secureTextEntry keyboardType="number-pad" maxLength={4} placeholder="Re-enter 4 digits" placeholderTextColor="#777" style={[s.whiteInput,{backgroundColor:canEditPin?colors.input:colors.panel2,color:colors.inputText},directorPinConfirm.length>0&&!pinsMatch(directorPin,directorPinConfirm)&&tournament.status!=='active'&&s.requiredInput]}/>
     {!pinIsValid(directorPin)&&tournament.status!=='active'&&<Text style={s.validationText}>A four digit director PIN is required before the tournament can start.</Text>}
@@ -1109,8 +1102,6 @@ const s=StyleSheet.create({
  nameHeader:{flexDirection:'row',alignItems:'center',justifyContent:'space-between'},
  inlineCount:{color:'#fff',fontSize:11},
  whiteInput:{backgroundColor:'#fff',color:'#000',borderColor:'#777',borderWidth:1,minHeight:20,paddingHorizontal:5},
- historyTypeRow:{flexDirection:'row',gap:8},
- historyTypeButton:{flex:1,minHeight:34,borderRadius:4},
  skillButtons:{flexDirection:'row',gap:4},
  skillButton:{width:32,height:28,borderColor:'#777',borderWidth:1,backgroundColor:'#fff',alignItems:'center',justifyContent:'center'},
  skillSelected:{backgroundColor:theme.green,borderColor:theme.green},

@@ -11,7 +11,7 @@ import { labelForBracket } from '@/domain/tournament';
 const bracketChoices:BracketType[]=['16-single','16-double','16-modified-single','32-single','32-double','32-modified-single'];
 
 export default function Home(){
- const {items,history,hydrated,create,remove}=useTournaments();
+ const {items,history,hydrated,create,update,remove}=useTournaments();
  const {settings,updateSetting,resetSettings}=useAppSettings();
  const colors=getTheme(settings.appearance);
  const [selecting,setSelecting]=useState(false);
@@ -22,7 +22,7 @@ export default function Home(){
  const [pendingDelete,setPendingDelete]=useState<{id:string;name:string}|null>(null);
  if(!hydrated)return <View style={[s.loading,{backgroundColor:colors.bg}]}><ActivityIndicator color={colors.green}/><Text style={[s.muted,{color:colors.muted}]}>Loading tournaments...</Text></View>;
  const running=items.find(item=>item.status==='active');
- const createSelected=()=>{const tournament=create('New Tournament',choice);setSelecting(false);router.push(`/tournament/${tournament.id}`);};
+ const createSelected=()=>{const tournament=create('New Tournament',choice);const configured={...tournament,settings:{...tournament.settings,historyType:settings.tournamentHistoryType}};update(configured);setSelecting(false);router.push(`/tournament/${tournament.id}`);};
  return <ImageBackground source={require('../assets/screen-background.png')} resizeMode="cover" style={[s.screen,{backgroundColor:colors.bg}]}>
   <View style={[s.neonWash,{backgroundColor:settings.appearance==='light'?'rgba(245,250,241,.62)':'rgba(2,14,3,.55)'}]}/>
   <View style={[s.phoneFrame,{borderColor:colors.border,backgroundColor:settings.appearance==='light'?'rgba(255,255,255,.86)':'rgba(0,0,0,.78)'}]}>
@@ -137,9 +137,10 @@ function SettingsModal({visible,settings,updateSetting,resetSettings,close}:{vis
       <SettingChoice key="readyMatchColor" label="Ready match color" value={settings.readyMatchColor} options={[['red','Red'],['green','Green'],['gold','Gold']]} onChange={value=>updateSetting('readyMatchColor',value as AppSettings['readyMatchColor'])}/>
      ]},
      {section:'Tournament Details',rows:[
-      <SettingChoice key="autoSave" label="Auto-save" value={settings.autoSave} options={[['every-change','Every change'],['every-match','Every match'],['manual','Manual only']]} onChange={value=>updateSetting('autoSave',value as AppSettings['autoSave'])}/>,
-      <SettingChoice key="qrTimeout" label="QR/session timeout" value={settings.qrTimeout} options={[['tournament-end','Tournament end'],['one-hour','1 hour'],['never','Never']]} onChange={value=>updateSetting('qrTimeout',value as AppSettings['qrTimeout'])}/>,
-      <SettingChoice key="payoutPreset" label="Payout setup" value={settings.payoutPreset} options={[['top-8','Top 8'],['top-4','Top 4'],['custom','Custom']]} onChange={value=>updateSetting('payoutPreset',value as AppSettings['payoutPreset'])}/>,
+     <SettingChoice key="autoSave" label="Auto-save" value={settings.autoSave} options={[['every-change','Every change'],['every-match','Every match'],['manual','Manual only']]} onChange={value=>updateSetting('autoSave',value as AppSettings['autoSave'])}/>,
+     <SettingChoice key="qrTimeout" label="QR/session timeout" value={settings.qrTimeout} options={[['tournament-end','Tournament end'],['one-hour','1 hour'],['never','Never']]} onChange={value=>updateSetting('qrTimeout',value as AppSettings['qrTimeout'])}/>,
+     <SettingChoice key="tournamentHistoryType" label="Tournament history type" value={settings.tournamentHistoryType} options={[['singles','Singles'],['teams','Teams']]} onChange={value=>updateSetting('tournamentHistoryType',value as AppSettings['tournamentHistoryType'])}/>,
+     <SettingChoice key="payoutPreset" label="Payout setup" value={settings.payoutPreset} options={[['top-8','Top 8'],['top-4','Top 4'],['custom','Custom']]} onChange={value=>updateSetting('payoutPreset',value as AppSettings['payoutPreset'])}/>,
       <SettingToggle key="tableLabels" label="Table/location labels" value={settings.tableLabels} onChange={value=>updateSetting('tableLabels',value)}/>,
       <SettingToggle key="notifications" label="Notifications/sounds" value={settings.notifications} onChange={value=>updateSetting('notifications',value)}/>
      ]},

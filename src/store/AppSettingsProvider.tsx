@@ -1,5 +1,6 @@
 import React,{createContext,useCallback,useContext,useEffect,useMemo,useState} from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { TournamentHistoryType } from '@/domain/types';
 
 export type AppSettings={
  appearance:'dark'|'light';
@@ -19,6 +20,7 @@ export type AppSettings={
  notifications:boolean;
  autoSave:'every-change'|'every-match'|'manual';
  qrTimeout:'never'|'tournament-end'|'one-hour';
+ tournamentHistoryType:TournamentHistoryType;
  payoutPreset:'top-4'|'top-8'|'custom';
  tableLabels:boolean;
  exportFormat:'json'|'csv';
@@ -52,6 +54,7 @@ const defaults:AppSettings={
  notifications:false,
  autoSave:'every-change',
  qrTimeout:'tournament-end',
+ tournamentHistoryType:'singles',
  payoutPreset:'top-8',
  tableLabels:true,
  exportFormat:'json'
