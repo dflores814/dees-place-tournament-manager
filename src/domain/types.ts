@@ -42,6 +42,9 @@ export interface TournamentSettings {
   raceChartMode?: 'off' | '8-ball-singles' | 'custom' | 'side-race' | 'skill-handicap';
   skillLevelsEnabled?: boolean;
   historyType?: TournamentHistoryType;
+  confirmedWinnerId?: string;
+  confirmedWinnerName?: string;
+  confirmedWinnerAt?: string;
   customRaceChart?: Record<string, string>;
   sideRaceTargets?: { upper: number; lower: number; final: number };
   skillHandicapTargets?: { upper: number; lower: number; final: number };

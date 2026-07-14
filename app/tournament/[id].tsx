@@ -172,12 +172,12 @@ function payoutRows(t:Tournament):PayoutRow[]{
  return payoutPlaces.map(place=>t.payouts?.find(row=>row.place===place)??{place,player:'',amount:''});
 }
 
-function tournamentChampion(tournament:Tournament,matches:readonly ResolvedMatch[]){
+function tournamentChampionPlayer(tournament:Tournament,matches:readonly ResolvedMatch[]){
  const finalWinners=matches.filter(match=>match.side==='final'&&match.winnerId);
  const lastFinal=finalWinners[finalWinners.length-1];
  const completed=matches.filter(match=>match.winnerId);
  const lastWinnerId=lastFinal?.winnerId??completed[completed.length-1]?.winnerId;
- return tournament.players.find(player=>player.id===lastWinnerId)?.name??'';
+ return tournament.players.find(player=>player.id===lastWinnerId)??null;
 }
 
 function scoreFor(scores:readonly MatchScore[]|undefined,matchId:string){
@@ -237,6 +237,8 @@ export default function TournamentScreen(){
  const [startOpen,setStartOpen]=useState(false);
  const [startBlocker,setStartBlocker]=useState<string|null>(null);
  const [endOpen,setEndOpen]=useState(false);
+ const [championConfirmOpen,setChampionConfirmOpen]=useState(false);
+ const [dismissedChampionId,setDismissedChampionId]=useState<string|null>(null);
  const [castMode,setCastMode]=useState(false);
  const [castPickerOpen,setCastPickerOpen]=useState(false);
  const [castStatus,setCastStatus]=useState('Search for a compatible TV or casting device, or use this screen for screen mirroring.');
@@ -256,6 +258,7 @@ export default function TournamentScreen(){
  const pinchStartZoom=useRef(1);
  const resolved=useMemo(()=>t?resolveBracket(t.players,t.results,t.bracketType):[],[t]);
  const ready=useMemo(()=>t?nextReadyMatches(t.players,t.results,t.bracketType):[],[t]);
+ const champion=useMemo(()=>t?tournamentChampionPlayer(t,resolved):null,[t,resolved]);
  useEffect(()=>{
   if(!id)return;
   syncRef.current?.close();
@@ -275,6 +278,11 @@ export default function TournamentScreen(){
   if(!t||participantMode||syncStatus!=='connected')return;
   syncRef.current?.publish({...t,settings:{...t.settings,...raceSettingsSnapshot(settings)}});
  },[t?.id,t?.updatedAt,participantMode,syncStatus,settings.raceChartMode,settings.skillLevelsEnabled,settings.customRaceChart,settings.sideRaceTargets,settings.skillHandicapTargets]);
+ useEffect(()=>{
+  if(!t||participantMode||t.status==='complete'||!champion)return;
+  if(t.settings.confirmedWinnerId===champion.id||dismissedChampionId===champion.id)return;
+  setChampionConfirmOpen(true);
+ },[t?.id,t?.status,t?.updatedAt,participantMode,champion?.id,t?.settings.confirmedWinnerId,dismissedChampionId]);
  if(!t)return <View style={[s.page,{backgroundColor:colors.bg}]}><Text style={[s.title,{color:colors.text}]}>{realtimeConfigured()?'Joining tournament...':'Tournament not found'}</Text><Text style={[s.muted,{color:colors.muted}]}>{realtimeConfigured()?`Sync status: ${syncStatus}`:'Realtime sync is not configured on this build.'}</Text><Button title="Home" onPress={()=>router.replace('/')}/></View>;
  const reconnectSync=()=>{
   setSyncStatus(realtimeConfigured()?'connecting':'unconfigured');
@@ -414,9 +422,24 @@ const confirmWinner=()=>{
  const editMatch=(match:ResolvedMatch)=>{
   chooseWinner(match);
  };
+ const confirmTournamentChampion=()=>{
+  if(!champion)return;
+  save({...t,settings:{...t.settings,confirmedWinnerId:champion.id,confirmedWinnerName:champion.name,confirmedWinnerAt:new Date().toISOString()}});
+  setChampionConfirmOpen(false);
+  setDismissedChampionId(null);
+ };
+ const closeChampionConfirm=()=>{
+  setDismissedChampionId(champion?.id??null);
+  setChampionConfirmOpen(false);
+ };
  const endTournament=()=>setEndOpen(true);
  const confirmEndTournament=()=>{
-  const winnerName=tournamentChampion(t,resolved);
+  if(champion&&t.settings.confirmedWinnerId!==champion.id){
+   setEndOpen(false);
+   setChampionConfirmOpen(true);
+   return;
+  }
+  const winnerName=t.settings.confirmedWinnerName??champion?.name??'';
   if(winnerName) addHistory({id:newId(),tournamentId:t.id,tournamentName:t.name,winnerName,type:t.settings.historyType??'singles',date:new Date().toISOString()});
   save({...t,status:'complete'});
   setEndOpen(false);
@@ -528,6 +551,7 @@ const confirmWinner=()=>{
   <StartModal visible={startOpen} defaultMode={settings.randomizeDefault} confirm={confirmStart} close={()=>setStartOpen(false)}/>
   <NoticeModal visible={!!startBlocker} title="Tournament cannot start" message={startBlocker??''} close={()=>setStartBlocker(null)}/>
   <EndTournamentModal visible={endOpen} confirm={confirmEndTournament} close={()=>setEndOpen(false)}/>
+  {!participantMode&&<ChampionConfirmModal visible={championConfirmOpen} championName={champion?.name??''} confirm={confirmTournamentChampion} close={closeChampionConfirm}/>}
   <PayoutModal visible={payoutOpen} rows={payoutRows(t)} onChange={updatePayout} close={()=>setPayoutOpen(false)}/>
   <ScoresModal visible={scoresOpen} tournament={t} matches={resolved} settings={raceSettings} close={()=>setScoresOpen(false)}/>
   <SkillLevelsModal visible={skillsOpen} tournament={t} close={()=>setSkillsOpen(false)}/>
@@ -614,6 +638,23 @@ function EndTournamentModal({visible,confirm,close}:{visible:boolean;confirm:()=
  const colors=getTheme(settings.appearance);
  return <Modal transparent visible={visible} animationType="fade" onRequestClose={close}>
   <View style={[s.modalShade,{backgroundColor:colors.shade}]}><View style={[s.startWindow,{backgroundColor:colors.panel,borderColor:colors.green}]}><Text style={[s.startTitle,{color:colors.text}]}>End Tournament?</Text><Text style={[s.startQuestion,{color:colors.text}]}>Are you sure you want to end this tournament?</Text><View style={s.startActions}><Button title="Yes" variant="danger" onPress={confirm} style={s.startButton}/><Button title="No" variant="secondary" onPress={close} style={s.startButton}/></View></View></View>
+ </Modal>;
+}
+
+function ChampionConfirmModal({visible,championName,confirm,close}:{visible:boolean;championName:string;confirm:()=>void;close:()=>void}){
+ const {settings}=useAppSettings();
+ const colors=getTheme(settings.appearance);
+ return <Modal transparent visible={visible} animationType="fade" onRequestClose={close}>
+  <View style={[s.modalShade,{backgroundColor:colors.shade}]}>
+   <View style={[s.startWindow,{backgroundColor:colors.panel,borderColor:colors.green}]}>
+    <Text style={[s.startTitle,{color:colors.text}]}>Confirm Winner?</Text>
+    <Text style={[s.startQuestion,{color:colors.text}]}>{championName || 'The winner'} is on the Winner line. Confirm this tournament winner?</Text>
+    <View style={s.startActions}>
+     <Button title="Yes" onPress={confirm} style={s.startButton}/>
+     <Button title="No" variant="secondary" onPress={close} style={s.startButton}/>
+    </View>
+   </View>
+  </View>
  </Modal>;
 }
 
