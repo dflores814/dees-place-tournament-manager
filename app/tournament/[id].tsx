@@ -200,8 +200,8 @@ function touchDistance(event:GestureResponderEvent){
 }
 
 function canvasSize(type:BracketType,castMode:boolean){
- if(type==='16-single') return {width:580,height:560};
- if(type==='32-single') return {width:680,height:940};
+ if(type==='16-single') return {width:580,height:620};
+ if(type==='32-single') return {width:680,height:1160};
  if(type==='16-double') return {width:860,height:castMode?860:980};
  if(type==='32-double') return {width:1080,height:castMode?1480:1590};
  return {width:1300,height:castMode?620:760};
@@ -873,19 +873,19 @@ function SingleElim16Canvas({tournament,matches,readyIds,onWinner,onEdit,onBye,d
   if(!match)return null;
   return <BracketBox key={id} tournament={tournament} match={match} ready={readyIds.has(match.id)} onWinner={onWinner} onEdit={onEdit} onBye={onBye} director={director} readyColor={readyColor} playerDisplay={playerDisplay} settings={settings} presentation={presentation} boxStyle={[s.templateMatch,{left,top}]}/>;
  };
- const p={U1:{left:0,top:0},U2:{left:0,top:45},U3:{left:0,top:90},U4:{left:0,top:135},U5:{left:0,top:180},U6:{left:0,top:225},U7:{left:0,top:270},U8:{left:0,top:315},U9:{left:100,top:22},U10:{left:100,top:112},U11:{left:100,top:202},U12:{left:100,top:292},U13:{left:200,top:67},U14:{left:200,top:247},U15:{left:284,top:157}} satisfies Record<string,BoxPoint>;
+ const p={U1:{left:0,top:0},U2:{left:0,top:58},U3:{left:0,top:116},U4:{left:0,top:174},U5:{left:0,top:232},U6:{left:0,top:290},U7:{left:0,top:348},U8:{left:0,top:406},U9:{left:100,top:29},U10:{left:100,top:145},U11:{left:100,top:261},U12:{left:100,top:377},U13:{left:200,top:87},U14:{left:200,top:319},U15:{left:284,top:203}} satisfies Record<string,BoxPoint>;
  return <View style={s.single16Area}>
   <PairConnector a={p.U1} b={p.U2} to={p.U9}/><PairConnector a={p.U3} b={p.U4} to={p.U10}/><PairConnector a={p.U5} b={p.U6} to={p.U11}/><PairConnector a={p.U7} b={p.U8} to={p.U12}/>
-  <PairConnector a={p.U9} b={p.U10} to={p.U13}/><PairConnector a={p.U11} b={p.U12} to={p.U14}/><PairConnector a={p.U13} b={p.U14} to={p.U15}/><EndConnector from={p.U15} left={379} top={242}/>
-  <View style={[s.placeLabel,s.widePlaceLabel,{left:214,top:242}]}><Text style={s.placeLabelText}>3rd - 4th</Text></View>
-  <View style={[s.placeLabel,{left:295,top:242}]}><Text style={s.placeLabelText}>2nd</Text></View>
-  <View style={[s.placeLabel,{left:379,top:286}]}><Text style={s.placeLabelText}>Winner</Text></View>
-  <WinnerLine left={451} top={286}/>
+  <PairConnector a={p.U9} b={p.U10} to={p.U13}/><PairConnector a={p.U11} b={p.U12} to={p.U14}/><PairConnector a={p.U13} b={p.U14} to={p.U15}/><EndConnector from={p.U15} left={379} top={288}/>
+  <View style={[s.placeLabel,s.widePlaceLabel,{left:214,top:288}]}><Text style={s.placeLabelText}>3rd - 4th</Text></View>
+  <View style={[s.placeLabel,{left:295,top:288}]}><Text style={s.placeLabelText}>2nd</Text></View>
+  <View style={[s.placeLabel,{left:379,top:336}]}><Text style={s.placeLabelText}>Winner</Text></View>
+  <WinnerLine left={451} top={336}/>
   {[
-   render('U1',0,0),render('U2',0,45),render('U3',0,90),render('U4',0,135),
-   render('U5',0,180),render('U6',0,225),render('U7',0,270),render('U8',0,315),
-   render('U9',100,22),render('U10',100,112),render('U11',100,202),render('U12',100,292),
-   render('U13',200,67),render('U14',200,247),render('U15',284,157)
+   render('U1',0,0),render('U2',0,58),render('U3',0,116),render('U4',0,174),
+   render('U5',0,232),render('U6',0,290),render('U7',0,348),render('U8',0,406),
+   render('U9',100,29),render('U10',100,145),render('U11',100,261),render('U12',100,377),
+   render('U13',200,87),render('U14',200,319),render('U15',284,203)
   ]}
  </View>;
 }
@@ -897,26 +897,26 @@ function SingleElim32Canvas({tournament,matches,readyIds,onWinner,onEdit,onBye,d
   if(!match)return null;
   return <BracketBox key={id} tournament={tournament} match={match} ready={readyIds.has(match.id)} onWinner={onWinner} onEdit={onEdit} onBye={onBye} director={director} readyColor={readyColor} playerDisplay={playerDisplay} settings={settings} presentation={presentation} boxStyle={[s.templateMatch,{left,top}]}/>;
  };
- const p={U1:{left:0,top:0},U2:{left:0,top:45},U3:{left:0,top:90},U4:{left:0,top:135},U5:{left:0,top:180},U6:{left:0,top:225},U7:{left:0,top:270},U8:{left:0,top:315},U9:{left:0,top:360},U10:{left:0,top:405},U11:{left:0,top:450},U12:{left:0,top:495},U13:{left:0,top:540},U14:{left:0,top:585},U15:{left:0,top:630},U16:{left:0,top:675},U17:{left:100,top:22},U18:{left:100,top:112},U19:{left:100,top:202},U20:{left:100,top:292},U21:{left:100,top:382},U22:{left:100,top:472},U23:{left:100,top:562},U24:{left:100,top:652},U25:{left:200,top:67},U26:{left:200,top:247},U27:{left:200,top:427},U28:{left:200,top:607},U29:{left:284,top:157},U30:{left:284,top:517},U31:{left:368,top:337}} satisfies Record<string,BoxPoint>;
+ const p={U1:{left:0,top:0},U2:{left:0,top:58},U3:{left:0,top:116},U4:{left:0,top:174},U5:{left:0,top:232},U6:{left:0,top:290},U7:{left:0,top:348},U8:{left:0,top:406},U9:{left:0,top:464},U10:{left:0,top:522},U11:{left:0,top:580},U12:{left:0,top:638},U13:{left:0,top:696},U14:{left:0,top:754},U15:{left:0,top:812},U16:{left:0,top:870},U17:{left:100,top:29},U18:{left:100,top:145},U19:{left:100,top:261},U20:{left:100,top:377},U21:{left:100,top:493},U22:{left:100,top:609},U23:{left:100,top:725},U24:{left:100,top:841},U25:{left:200,top:87},U26:{left:200,top:319},U27:{left:200,top:551},U28:{left:200,top:783},U29:{left:284,top:203},U30:{left:284,top:667},U31:{left:368,top:435}} satisfies Record<string,BoxPoint>;
  return <View style={s.single32Area}>
   <PairConnector a={p.U1} b={p.U2} to={p.U17}/><PairConnector a={p.U3} b={p.U4} to={p.U18}/><PairConnector a={p.U5} b={p.U6} to={p.U19}/><PairConnector a={p.U7} b={p.U8} to={p.U20}/>
   <PairConnector a={p.U9} b={p.U10} to={p.U21}/><PairConnector a={p.U11} b={p.U12} to={p.U22}/><PairConnector a={p.U13} b={p.U14} to={p.U23}/><PairConnector a={p.U15} b={p.U16} to={p.U24}/>
   <PairConnector a={p.U17} b={p.U18} to={p.U25}/><PairConnector a={p.U19} b={p.U20} to={p.U26}/><PairConnector a={p.U21} b={p.U22} to={p.U27}/><PairConnector a={p.U23} b={p.U24} to={p.U28}/>
-  <PairConnector a={p.U25} b={p.U26} to={p.U29}/><PairConnector a={p.U27} b={p.U28} to={p.U30}/><PairConnector a={p.U29} b={p.U30} to={p.U31}/><EndConnector from={p.U31} left={465} top={352}/>
-  <View style={[s.placeLabel,s.widePlaceLabel,{left:216,top:324}]}><Text style={s.placeLabelText}>5th - 8th</Text></View>
-  <View style={[s.placeLabel,s.widePlaceLabel,{left:300,top:324}]}><Text style={s.placeLabelText}>3rd - 4th</Text></View>
-  <View style={[s.placeLabel,{left:377,top:324}]}><Text style={s.placeLabelText}>2nd</Text></View>
-  <View style={[s.placeLabel,{left:465,top:410}]}><Text style={s.placeLabelText}>Winner</Text></View>
-  <WinnerLine left={537} top={410}/>
+  <PairConnector a={p.U25} b={p.U26} to={p.U29}/><PairConnector a={p.U27} b={p.U28} to={p.U30}/><PairConnector a={p.U29} b={p.U30} to={p.U31}/><EndConnector from={p.U31} left={465} top={450}/>
+  <View style={[s.placeLabel,s.widePlaceLabel,{left:216,top:430}]}><Text style={s.placeLabelText}>5th - 8th</Text></View>
+  <View style={[s.placeLabel,s.widePlaceLabel,{left:300,top:430}]}><Text style={s.placeLabelText}>3rd - 4th</Text></View>
+  <View style={[s.placeLabel,{left:377,top:430}]}><Text style={s.placeLabelText}>2nd</Text></View>
+  <View style={[s.placeLabel,{left:465,top:510}]}><Text style={s.placeLabelText}>Winner</Text></View>
+  <WinnerLine left={537} top={510}/>
   {[
-   render('U1',0,0),render('U2',0,45),render('U3',0,90),render('U4',0,135),
-   render('U5',0,180),render('U6',0,225),render('U7',0,270),render('U8',0,315),
-   render('U9',0,360),render('U10',0,405),render('U11',0,450),render('U12',0,495),
-   render('U13',0,540),render('U14',0,585),render('U15',0,630),render('U16',0,675),
-   render('U17',100,22),render('U18',100,112),render('U19',100,202),render('U20',100,292),
-   render('U21',100,382),render('U22',100,472),render('U23',100,562),render('U24',100,652),
-   render('U25',200,67),render('U26',200,247),render('U27',200,427),render('U28',200,607),
-   render('U29',284,157),render('U30',284,517),render('U31',368,337)
+   render('U1',0,0),render('U2',0,58),render('U3',0,116),render('U4',0,174),
+   render('U5',0,232),render('U6',0,290),render('U7',0,348),render('U8',0,406),
+   render('U9',0,464),render('U10',0,522),render('U11',0,580),render('U12',0,638),
+   render('U13',0,696),render('U14',0,754),render('U15',0,812),render('U16',0,870),
+   render('U17',100,29),render('U18',100,145),render('U19',100,261),render('U20',100,377),
+   render('U21',100,493),render('U22',100,609),render('U23',100,725),render('U24',100,841),
+   render('U25',200,87),render('U26',200,319),render('U27',200,551),render('U28',200,783),
+   render('U29',284,203),render('U30',284,667),render('U31',368,435)
   ]}
  </View>;
 }
@@ -931,10 +931,10 @@ function DoubleElim32Canvas({tournament,matches,readyIds,onWinner,onEdit,onBye,d
   return <BracketBox key={id} {...props}/>;
  };
  const p={
-  U1:{left:0,top:0},U2:{left:0,top:45},U3:{left:0,top:90},U4:{left:0,top:135},U5:{left:0,top:180},U6:{left:0,top:225},U7:{left:0,top:270},U8:{left:0,top:315},
-  U9:{left:0,top:360},U10:{left:0,top:405},U11:{left:0,top:450},U12:{left:0,top:495},U13:{left:0,top:540},U14:{left:0,top:585},U15:{left:0,top:630},U16:{left:0,top:675},
-  U17:{left:122,top:22},U18:{left:122,top:112},U19:{left:122,top:202},U20:{left:122,top:292},U21:{left:122,top:382},U22:{left:122,top:472},U23:{left:122,top:562},U24:{left:122,top:652},
-  U25:{left:244,top:67},U26:{left:244,top:247},U27:{left:244,top:427},U28:{left:244,top:607},U29:{left:366,top:157},U30:{left:366,top:517},U31:{left:488,top:337},GF:{left:610,top:397},GFR:{left:610,top:480},
+  U1:{left:0,top:0},U2:{left:0,top:58},U3:{left:0,top:116},U4:{left:0,top:174},U5:{left:0,top:232},U6:{left:0,top:290},U7:{left:0,top:348},U8:{left:0,top:406},
+  U9:{left:0,top:464},U10:{left:0,top:522},U11:{left:0,top:580},U12:{left:0,top:638},U13:{left:0,top:696},U14:{left:0,top:754},U15:{left:0,top:812},U16:{left:0,top:870},
+  U17:{left:122,top:29},U18:{left:122,top:145},U19:{left:122,top:261},U20:{left:122,top:377},U21:{left:122,top:493},U22:{left:122,top:609},U23:{left:122,top:725},U24:{left:122,top:841},
+  U25:{left:244,top:87},U26:{left:244,top:319},U27:{left:244,top:551},U28:{left:244,top:783},U29:{left:366,top:203},U30:{left:366,top:667},U31:{left:488,top:435},GF:{left:610,top:495},GFR:{left:610,top:578},
   L1:{left:770,top:820},L2:{left:770,top:890},L3:{left:770,top:960},L4:{left:770,top:1030},L5:{left:770,top:1100},L6:{left:770,top:1170},L7:{left:770,top:1240},L8:{left:770,top:1310},
   L9:{left:648,top:795},L10:{left:648,top:865},L11:{left:648,top:935},L12:{left:648,top:1005},L13:{left:648,top:1075},L14:{left:648,top:1145},L15:{left:648,top:1215},L16:{left:648,top:1285},
   L17:{left:526,top:830},L18:{left:526,top:970},L19:{left:526,top:1110},L20:{left:526,top:1250},L21:{left:404,top:800},L22:{left:404,top:940},L23:{left:404,top:1080},L24:{left:404,top:1220},
@@ -944,16 +944,16 @@ function DoubleElim32Canvas({tournament,matches,readyIds,onWinner,onEdit,onBye,d
   <PairConnector a={p.U1} b={p.U2} to={p.U17}/><PairConnector a={p.U3} b={p.U4} to={p.U18}/><PairConnector a={p.U5} b={p.U6} to={p.U19}/><PairConnector a={p.U7} b={p.U8} to={p.U20}/>
   <PairConnector a={p.U9} b={p.U10} to={p.U21}/><PairConnector a={p.U11} b={p.U12} to={p.U22}/><PairConnector a={p.U13} b={p.U14} to={p.U23}/><PairConnector a={p.U15} b={p.U16} to={p.U24}/>
   <PairConnector a={p.U17} b={p.U18} to={p.U25}/><PairConnector a={p.U19} b={p.U20} to={p.U26}/><PairConnector a={p.U21} b={p.U22} to={p.U27}/><PairConnector a={p.U23} b={p.U24} to={p.U28}/>
-  <PairConnector a={p.U25} b={p.U26} to={p.U29}/><PairConnector a={p.U27} b={p.U28} to={p.U30}/><PairConnector a={p.U29} b={p.U30} to={p.U31}/><StepConnector from={p.U31} to={p.GF}/><EndConnector from={p.GF} left={610} top={430}/>
+  <PairConnector a={p.U25} b={p.U26} to={p.U29}/><PairConnector a={p.U27} b={p.U28} to={p.U30}/><PairConnector a={p.U29} b={p.U30} to={p.U31}/><StepConnector from={p.U31} to={p.GF}/><EndConnector from={p.GF} left={610} top={528}/>
   <StepConnector from={p.L1} to={p.L9}/><StepConnector from={p.L2} to={p.L10}/><StepConnector from={p.L3} to={p.L11}/><StepConnector from={p.L4} to={p.L12}/>
   <StepConnector from={p.L5} to={p.L13}/><StepConnector from={p.L6} to={p.L14}/><StepConnector from={p.L7} to={p.L15}/><StepConnector from={p.L8} to={p.L16}/>
   <PairConnector a={p.L9} b={p.L10} to={p.L17}/><PairConnector a={p.L11} b={p.L12} to={p.L18}/><PairConnector a={p.L13} b={p.L14} to={p.L19}/><PairConnector a={p.L15} b={p.L16} to={p.L20}/>
   <StepConnector from={p.L17} to={p.L21}/><StepConnector from={p.L18} to={p.L22}/><StepConnector from={p.L19} to={p.L23}/><StepConnector from={p.L20} to={p.L24}/>
   <PairConnector a={p.L21} b={p.L22} to={p.L25}/><PairConnector a={p.L23} b={p.L24} to={p.L26}/><StepConnector from={p.L25} to={p.L27}/><StepConnector from={p.L26} to={p.L28}/>
   <PairConnector a={p.L27} b={p.L28} to={p.L29}/><StepConnector from={p.L29} to={p.L30}/>
-  <View style={[s.placeLabel,{left:508,top:442}]}><Text style={s.placeLabelText}>2nd</Text></View>
-  <View style={[s.placeLabel,{left:610,top:525}]}><Text style={s.placeLabelText}>Winner</Text></View>
-  <WinnerLine left={682} top={525}/>
+  <View style={[s.placeLabel,{left:508,top:540}]}><Text style={s.placeLabelText}>2nd</Text></View>
+  <View style={[s.placeLabel,{left:610,top:623}]}><Text style={s.placeLabelText}>Winner</Text></View>
+  <WinnerLine left={682} top={623}/>
   <View style={[s.placeLabel,{left:98,top:1142}]}><Text style={s.placeLabelText}>3rd</Text></View>
   <View style={[s.placeLabel,{left:190,top:1105}]}><Text style={s.placeLabelText}>4th</Text></View>
   <View style={[s.placeLabel,s.widePlaceLabel,{left:282,top:1020}]}><Text style={s.placeLabelText}>5th-6th</Text></View>
@@ -974,10 +974,10 @@ function DoubleElim32Canvas({tournament,matches,readyIds,onWinner,onEdit,onBye,d
   <Text style={[s.loserSourceLabel,{left:676,top:1124}]}>Loser of 18</Text>
   <Text style={[s.loserSourceLabel,{left:676,top:1194}]}>Loser of 17</Text>
   {[
-   render('U1',0,0),render('U2',0,45),render('U3',0,90),render('U4',0,135),render('U5',0,180),render('U6',0,225),render('U7',0,270),render('U8',0,315),
-   render('U9',0,360),render('U10',0,405),render('U11',0,450),render('U12',0,495),render('U13',0,540),render('U14',0,585),render('U15',0,630),render('U16',0,675),
-   render('U17',122,22),render('U18',122,112),render('U19',122,202),render('U20',122,292),render('U21',122,382),render('U22',122,472),render('U23',122,562),render('U24',122,652),
-   render('U25',244,67),render('U26',244,247),render('U27',244,427),render('U28',244,607),render('U29',366,157),render('U30',366,517),render('U31',488,337),render('GF',610,397,32),render('GFR',610,480,''),
+   render('U1',0,0),render('U2',0,58),render('U3',0,116),render('U4',0,174),render('U5',0,232),render('U6',0,290),render('U7',0,348),render('U8',0,406),
+   render('U9',0,464),render('U10',0,522),render('U11',0,580),render('U12',0,638),render('U13',0,696),render('U14',0,754),render('U15',0,812),render('U16',0,870),
+   render('U17',122,29),render('U18',122,145),render('U19',122,261),render('U20',122,377),render('U21',122,493),render('U22',122,609),render('U23',122,725),render('U24',122,841),
+   render('U25',244,87),render('U26',244,319),render('U27',244,551),render('U28',244,783),render('U29',366,203),render('U30',366,667),render('U31',488,435),render('GF',610,495,32),render('GFR',610,578,''),
    render('L1',770,820),render('L2',770,890),render('L3',770,960),render('L4',770,1030),render('L5',770,1100),render('L6',770,1170),render('L7',770,1240),render('L8',770,1310),
    render('L9',648,795),render('L10',648,865),render('L11',648,935),render('L12',648,1005),render('L13',648,1075),render('L14',648,1145),render('L15',648,1215),render('L16',648,1285),
    render('L17',526,830),render('L18',526,970),render('L19',526,1110),render('L20',526,1250),render('L21',404,800),render('L22',404,940),render('L23',404,1080),render('L24',404,1220),
@@ -1021,8 +1021,8 @@ const s=StyleSheet.create({
  horizontalScroller:{alignItems:'flex-start'},
  zoomSurface:{backgroundColor:'#000',position:'relative'},
  canvas:{width:1320,minHeight:760,backgroundColor:'#000',position:'relative',paddingTop:150},
- single16Canvas:{width:580,minHeight:560,paddingTop:180},
- single32Canvas:{width:680,minHeight:940,paddingTop:180},
+ single16Canvas:{width:580,minHeight:620,paddingTop:180},
+ single32Canvas:{width:680,minHeight:1160,paddingTop:180},
  doubleCanvas:{width:960,minHeight:1020,paddingTop:190},
  double32Canvas:{width:1080,minHeight:1590,paddingTop:190},
  castCanvas:{paddingTop:8},
@@ -1037,8 +1037,8 @@ const s=StyleSheet.create({
  statusText:{color:'#fff',fontSize:10},
  readyCount:{backgroundColor:'#f00',color:'#fff',fontWeight:'900',fontSize:18,borderRadius:5,paddingHorizontal:7},
  bracketArea:{paddingLeft:0,paddingTop:8},
- single16Area:{width:580,height:380,position:'relative'},
- single32Area:{width:680,height:740,position:'relative'},
+ single16Area:{width:580,height:500,position:'relative'},
+ single32Area:{width:680,height:1060,position:'relative'},
  templateArea:{width:860,height:820,position:'relative'},
  template32Area:{width:900,height:1380,position:'relative'},
  templateMatch:{position:'absolute',width:102,height:48},
