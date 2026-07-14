@@ -462,14 +462,15 @@ const confirmWinner=()=>{
     pinchStartZoom.current=zoom;
    }
   },
-  onResponderMove:(event:GestureResponderEvent)=>{
+ onResponderMove:(event:GestureResponderEvent)=>{
    const distance=touchDistance(event);
    if(distance>0&&pinchStartDistance.current>0){
     setZoom(clamp(pinchStartZoom.current*(distance/pinchStartDistance.current),0.45,2.5));
    }
   },
-  onResponderRelease:()=>setPinching(false),
-  onResponderTerminate:()=>setPinching(false)
+  onResponderRelease:()=>{pinchStartDistance.current=0;setPinching(false);},
+  onResponderEnd:()=>{pinchStartDistance.current=0;setPinching(false);},
+  onResponderTerminate:()=>{pinchStartDistance.current=0;setPinching(false);}
  };
  const bracketViewport={minWidth:viewportWidth,minHeight:Math.max(320,viewportHeight-(castMode?0:44))};
  const bracketScrollContent={
@@ -492,8 +493,8 @@ const confirmWinner=()=>{
    <Text style={[s.syncBadge,{color:syncStatusColor(syncStatus,settings.appearance==='light')}]}>Sync: {syncStatusText(syncStatus)}</Text>
    {syncStatus!=='connected'&&syncStatus!=='unconfigured'&&<Button title="Reconnect" variant="secondary" onPress={reconnectSync}/>}
   </View>}
-  <ScrollView style={s.scroller} contentContainerStyle={[bracketScrollContent,s.bracketViewport,castMode&&s.castViewport]} scrollEnabled={!pinching&&!castMode} centerContent>
-   <ScrollView horizontal scrollEnabled={!pinching&&!castMode} contentContainerStyle={[s.horizontalScroller,bracketScrollContent,castMode&&s.castViewport]}>
+  <ScrollView style={s.scroller} contentContainerStyle={[bracketScrollContent,s.bracketViewport,castMode&&s.castViewport]} scrollEnabled={!pinching&&!castMode} nestedScrollEnabled directionalLockEnabled centerContent>
+   <ScrollView horizontal style={s.horizontalScroll} scrollEnabled={!pinching&&!castMode} nestedScrollEnabled directionalLockEnabled showsHorizontalScrollIndicator contentContainerStyle={[s.horizontalScroller,bracketScrollContent,castMode&&s.castViewport]}>
    <View {...pinchHandlers} style={[s.zoomSurface,scaledCanvas]}>
    <View style={[s.canvas,t.bracketType==='16-single'&&s.single16Canvas,t.bracketType==='32-single'&&s.single32Canvas,t.bracketType==='16-double'&&s.doubleCanvas,t.bracketType==='32-double'&&s.double32Canvas,castMode&&s.castCanvas,{transform:[{translateX:canvasBounds.width*(displayZoom-1)/2},{translateY:canvasBounds.height*(displayZoom-1)/2},{scale:displayZoom}]}]}>
     {!castMode&&<Image source={require('../../assets/dees-place-logo.png')} resizeMode="contain" style={s.bracketLogo}/>}
@@ -1016,6 +1017,7 @@ const s=StyleSheet.create({
  participantBadge:{backgroundColor:'#061206',borderColor:theme.green,borderWidth:1,color:'#fff',fontSize:12,fontWeight:'900',paddingHorizontal:10,paddingVertical:7},
  syncBadge:{color:'#111',fontSize:12,fontWeight:'800',paddingHorizontal:8},
  scroller:{flex:1},
+ horizontalScroll:{width:'100%',flexGrow:0},
  bracketViewport:{paddingTop:18},
  castViewport:{alignItems:'center',justifyContent:'center',paddingTop:0},
  horizontalScroller:{alignItems:'flex-start'},
