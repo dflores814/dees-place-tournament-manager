@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Image, ImageBackground, Modal, Pressable, Share, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, FlatList, Image, ImageBackground, Modal, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import { useTournaments } from '@/store/TournamentProvider';
 import { AppSettings, eightBallSinglesRaceChart, skillLevels, useAppSettings } from '@/store/AppSettingsProvider';
@@ -227,16 +227,20 @@ function RaceChartEditor({settings,updateSetting}:{settings:AppSettings;updateSe
  const updateCell=(key:string,value:string)=>updateSetting('customRaceChart',{...settings.customRaceChart,[key]:value});
  return <View style={[s.raceEditor,{borderColor:colors.border}]}>
   <Text style={[s.raceHelp,{color:colors.muted}]}>{settings.raceChartMode==='custom'?'Edit each cell as Player/Opponent games, like 3/4.':'8-Ball Singles preset shown for skill levels 2-7.'}</Text>
-  <View style={s.raceRow}><Text style={[s.raceHeader,s.raceCorner,{color:colors.green,borderColor:colors.border}]}>You</Text>{skillLevels.map(level=><Text key={level} style={[s.raceHeader,{color:colors.text,borderColor:colors.border}]}>Opp {level}</Text>)}</View>
-  {skillLevels.map(row=><View key={row} style={s.raceRow}>
-   <Text style={[s.raceHeader,s.raceCorner,{color:colors.green,borderColor:colors.border}]}>{row}</Text>
-   {skillLevels.map(col=>{
-    const key=`${row}-${col}`;
-    return settings.raceChartMode==='custom'
-     ? <TextInput key={key} value={settings.customRaceChart[key]??''} onChangeText={value=>updateCell(key,value)} style={[s.raceInput,{backgroundColor:colors.input,color:colors.inputText,borderColor:colors.border}]}/>
-     : <Text key={key} style={[s.raceCell,{color:colors.text,borderColor:colors.border}]}>{chart[key]}</Text>;
-   })}
-  </View>)}
+  <ScrollView horizontal showsHorizontalScrollIndicator contentContainerStyle={s.raceTableScroll}>
+   <View style={s.raceTable}>
+    <View style={s.raceRow}><Text style={[s.raceHeader,s.raceCorner,{color:colors.green,borderColor:colors.border}]}>You</Text>{skillLevels.map(level=><Text key={level} style={[s.raceHeader,{color:colors.text,borderColor:colors.border}]}>Opp {level}</Text>)}</View>
+    {skillLevels.map(row=><View key={row} style={s.raceRow}>
+     <Text style={[s.raceHeader,s.raceCorner,{color:colors.green,borderColor:colors.border}]}>{row}</Text>
+     {skillLevels.map(col=>{
+      const key=`${row}-${col}`;
+      return settings.raceChartMode==='custom'
+       ? <TextInput key={key} value={settings.customRaceChart[key]??''} onChangeText={value=>updateCell(key,value)} style={[s.raceInput,{backgroundColor:colors.input,color:colors.inputText,borderColor:colors.border}]}/>
+       : <Text key={key} style={[s.raceCell,{color:colors.text,borderColor:colors.border}]}>{chart[key]}</Text>;
+     })}
+    </View>)}
+   </View>
+  </ScrollView>
  </View>;
 }
 
@@ -290,6 +294,8 @@ const s=StyleSheet.create({
  choicePillText:{fontSize:11},
  raceEditor:{borderColor:'rgba(95,234,40,.25)',borderWidth:1,padding:8,gap:4,borderRadius:6},
  raceHelp:{color:'#bcbcbc',fontSize:11,lineHeight:16},
+ raceTableScroll:{paddingBottom:6},
+ raceTable:{minWidth:392},
  raceRow:{flexDirection:'row',alignItems:'center'},
  raceHeader:{width:58,minHeight:30,color:'#fff',fontSize:10,fontWeight:'900',textAlign:'center',textAlignVertical:'center',borderColor:'#244024',borderWidth:1,paddingVertical:7},
  raceCorner:{width:44,color:theme.green},
