@@ -16,7 +16,7 @@ export function labelForBracket(type:BracketType):string{
 export function createTournament(name:string,bracketType:BracketType='16-double'):Tournament{
  const now=new Date().toISOString();
  const {capacity}=parseBracketType(bracketType);
- return {id:newId(),name:name.trim()||'New Tournament',createdAt:now,updatedAt:now,status:'draft',capacity,bracketType,players:[],results:[],settings:{entryFee:10,raceTo:2,game:'8-ball',rules:'Modified APA rules',payoutPreset:'70-30',joinToken:newId()}};
+ return {id:newId(),name:name.trim()||'New Tournament',createdAt:now,updatedAt:now,status:'draft',capacity,bracketType,players:[],results:[],settings:{entryFee:10,raceTo:2,game:'8-ball',rules:'Modified APA rules',payoutPreset:'70-30',joinToken:newId(),historyType:'singles'}};
 }
 
 export function upsertPlayer(t:Tournament,seed:number,name:string,skillLevel?:number):Tournament{

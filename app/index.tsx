@@ -1,21 +1,22 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Image, ImageBackground, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import { useTournaments } from '@/store/TournamentProvider';
 import { AppSettings, eightBallSinglesRaceChart, skillLevels, useAppSettings } from '@/store/AppSettingsProvider';
 import { Button } from '@/components/Button';
 import { getTheme, theme } from '@/theme';
-import { BracketType } from '@/domain/types';
+import { BracketType, TournamentHistoryEntry, TournamentHistoryType } from '@/domain/types';
 import { labelForBracket } from '@/domain/tournament';
 
 const bracketChoices:BracketType[]=['16-single','16-double','16-modified-single','32-single','32-double','32-modified-single'];
 
 export default function Home(){
- const {items,hydrated,create,remove}=useTournaments();
+ const {items,history,hydrated,create,remove}=useTournaments();
  const {settings,updateSetting,resetSettings}=useAppSettings();
  const colors=getTheme(settings.appearance);
  const [selecting,setSelecting]=useState(false);
  const [opening,setOpening]=useState(false);
+ const [historyOpen,setHistoryOpen]=useState(false);
  const [settingsOpen,setSettingsOpen]=useState(false);
  const [choice,setChoice]=useState<BracketType>('16-single');
  const [pendingDelete,setPendingDelete]=useState<{id:string;name:string}|null>(null);
@@ -34,6 +35,7 @@ export default function Home(){
     <View style={s.homeActions}>
      <Button title="CREATE TOURNAMENT" onPress={()=>setSelecting(true)} style={s.primaryHomeButton} textStyle={s.primaryHomeText}/>
      <Button title="LOAD TOURNAMENT" variant="secondary" onPress={()=>setOpening(true)} style={[s.secondaryHomeButton,{backgroundColor:settings.appearance==='light'?'rgba(255,255,255,.65)':'rgba(0,0,0,.35)',borderColor:colors.green}]} textStyle={[s.secondaryHomeText,{color:colors.text}]}/>
+     <Button title="TOURNAMENT HISTORY" variant="secondary" onPress={()=>setHistoryOpen(true)} style={[s.secondaryHomeButton,{backgroundColor:settings.appearance==='light'?'rgba(255,255,255,.65)':'rgba(0,0,0,.35)',borderColor:colors.green}]} textStyle={[s.secondaryHomeText,{color:colors.text}]}/>
      <Button title="SCAN QR" variant="secondary" onPress={()=>router.push('/scan-qr')} style={[s.secondaryHomeButton,{backgroundColor:settings.appearance==='light'?'rgba(255,255,255,.65)':'rgba(0,0,0,.35)',borderColor:colors.green}]} textStyle={[s.secondaryHomeText,{color:colors.text}]}/>
      {running&&<Button title="RETURN TO RUNNING TOURNAMENT" onPress={()=>router.push(`/tournament/${running.id}`)} style={s.primaryHomeButton} textStyle={s.primaryHomeText}/>}
     </View>
@@ -75,8 +77,40 @@ export default function Home(){
     </View>
    </View>
   </Modal>
+  <TournamentHistoryModal visible={historyOpen} history={history} close={()=>setHistoryOpen(false)}/>
   <SettingsModal visible={settingsOpen} settings={settings} updateSetting={updateSetting} resetSettings={resetSettings} close={()=>setSettingsOpen(false)}/>
  </ImageBackground>;
+}
+
+function TournamentHistoryModal({visible,history,close}:{visible:boolean;history:readonly TournamentHistoryEntry[];close:()=>void}){
+ const {settings}=useAppSettings();
+ const colors=getTheme(settings.appearance);
+ const [view,setView]=useState<TournamentHistoryType|null>(null);
+ useEffect(()=>{if(!visible)setView(null);},[visible]);
+ const rows=view?history.filter(entry=>entry.type===view):[];
+ const title=view===null?'Tournament History':view==='singles'?'Singles History':'Teams History';
+ const dateText=(value:string)=>{
+  const date=new Date(value);
+  return Number.isNaN(date.getTime())?value:date.toLocaleDateString();
+ };
+ return <Modal transparent visible={visible} animationType="fade" onRequestClose={close}>
+  <View style={[s.modalShade,{backgroundColor:colors.shade}]}>
+   <View style={[s.historyWindow,{backgroundColor:colors.panel,borderColor:colors.green}]}>
+    <Text style={[s.modalHeading,{color:colors.text}]}>{title}</Text>
+    {view===null?<View style={s.historyChoices}>
+     <Button title="Singles" onPress={()=>setView('singles')}/>
+     <Button title="Teams" variant="secondary" onPress={()=>setView('teams')}/>
+     <Button title="Close" variant="secondary" onPress={close}/>
+    </View>:<View style={s.historyBody}>
+     <FlatList data={rows} keyExtractor={item=>item.id} contentContainerStyle={s.savedList} ListEmptyComponent={<Text style={[s.muted,{color:colors.muted}]}>No winners saved here yet.</Text>} renderItem={({item})=><View style={[s.historyItem,{backgroundColor:colors.panel2,borderColor:colors.green}]}>
+      <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={[s.itemTitle,{color:colors.text}]}>{item.winnerName}</Text>
+      <Text style={[s.muted,{color:colors.muted}]}>{dateText(item.date)} | {item.tournamentName}</Text>
+     </View>}/>
+     <View style={s.modalActions}><Button title="Back" variant="secondary" onPress={()=>setView(null)}/><Button title="Close" variant="secondary" onPress={close}/></View>
+    </View>}
+   </View>
+  </View>
+ </Modal>;
 }
 
 function SettingsModal({visible,settings,updateSetting,resetSettings,close}:{visible:boolean;settings:AppSettings;updateSetting:<K extends keyof AppSettings>(key:K,value:AppSettings[K])=>void;resetSettings:()=>void;close:()=>void}){
@@ -209,6 +243,10 @@ const s=StyleSheet.create({
  modalShade:{flex:1,backgroundColor:'rgba(0,0,0,.68)',alignItems:'center',justifyContent:'center',padding:14},
  selectWindow:{width:'100%',maxWidth:460,borderColor:theme.green,borderWidth:1,borderRadius:10,backgroundColor:'#020602',overflow:'hidden',paddingBottom:22},
  openWindow:{width:'100%',maxWidth:620,maxHeight:'82%',borderColor:theme.green,borderWidth:1,borderRadius:10,backgroundColor:'#020602',overflow:'hidden',paddingBottom:12},
+ historyWindow:{width:'100%',maxWidth:520,maxHeight:'82%',borderColor:theme.green,borderWidth:1,borderRadius:10,backgroundColor:'#020602',overflow:'hidden',paddingBottom:18},
+ historyChoices:{padding:18,gap:10},
+ historyBody:{gap:8},
+ historyItem:{borderColor:theme.green,borderWidth:1,backgroundColor:'#050505',padding:12,gap:4},
  confirmWindow:{width:'100%',maxWidth:390,borderColor:theme.green,borderWidth:1,borderRadius:10,backgroundColor:'#020602',overflow:'hidden',paddingBottom:18},
  confirmText:{color:'#fff',fontSize:14,lineHeight:20,paddingHorizontal:18,paddingVertical:18},
  settingsWindow:{width:'100%',maxWidth:560,maxHeight:'86%',borderColor:theme.green,borderWidth:1,borderRadius:10,backgroundColor:'#020602',overflow:'hidden',paddingBottom:18},

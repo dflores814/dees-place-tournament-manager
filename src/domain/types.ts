@@ -3,6 +3,7 @@ export type BracketSide = 'upper' | 'lower' | 'final';
 export type BracketStyle = 'single' | 'modified-single' | 'double';
 export type BracketSize = 16 | 32;
 export type BracketType = `${BracketSize}-${BracketStyle}`;
+export type TournamentHistoryType = 'singles' | 'teams';
 
 export interface Player {
   id: string;
@@ -40,9 +41,19 @@ export interface TournamentSettings {
   joinToken?: string;
   raceChartMode?: 'off' | '8-ball-singles' | 'custom' | 'side-race' | 'skill-handicap';
   skillLevelsEnabled?: boolean;
+  historyType?: TournamentHistoryType;
   customRaceChart?: Record<string, string>;
   sideRaceTargets?: { upper: number; lower: number; final: number };
   skillHandicapTargets?: { upper: number; lower: number; final: number };
+}
+
+export interface TournamentHistoryEntry {
+  id: string;
+  tournamentId: string;
+  tournamentName: string;
+  winnerName: string;
+  type: TournamentHistoryType;
+  date: string;
 }
 
 export interface Tournament {
