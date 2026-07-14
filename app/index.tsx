@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Image, ImageBackground, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, FlatList, Image, ImageBackground, Modal, Pressable, Share, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import { useTournaments } from '@/store/TournamentProvider';
 import { AppSettings, eightBallSinglesRaceChart, skillLevels, useAppSettings } from '@/store/AppSettingsProvider';
@@ -86,27 +86,52 @@ function TournamentHistoryModal({visible,history,close}:{visible:boolean;history
  const {settings}=useAppSettings();
  const colors=getTheme(settings.appearance);
  const [view,setView]=useState<TournamentHistoryType|null>(null);
- useEffect(()=>{if(!visible)setView(null);},[visible]);
+ const [selected,setSelected]=useState<TournamentHistoryEntry|null>(null);
+ useEffect(()=>{if(!visible){setView(null);setSelected(null);}},[visible]);
  const rows=view?history.filter(entry=>entry.type===view):[];
- const title=view===null?'Tournament History':view==='singles'?'Singles History':'Teams History';
+ const title=selected?'Winner Details':view===null?'Tournament History':view==='singles'?'Singles History':'Teams History';
  const dateText=(value:string)=>{
   const date=new Date(value);
   return Number.isNaN(date.getTime())?value:date.toLocaleDateString();
+ };
+ const dateTimeText=(value:string|undefined)=>{
+  if(!value)return 'Not recorded';
+  const date=new Date(value);
+  return Number.isNaN(date.getTime())?value:date.toLocaleString();
+ };
+ const exportRows=async()=>{
+  const list=rows.length?rows:history;
+  const body=list.map(entry=>`${entry.type==='singles'?'Singles':'Teams'} | ${entry.winnerName} | ${dateText(entry.date)} | ${entry.tournamentName}${entry.bracketType?` | ${labelForBracket(entry.bracketType)}`:''}${entry.playerCount?` | ${entry.playerCount} players`:''}`).join('\n');
+  await Share.share({title:'Tournament History',message:body||'No tournament history has been saved yet.'});
  };
  return <Modal transparent visible={visible} animationType="fade" onRequestClose={close}>
   <View style={[s.modalShade,{backgroundColor:colors.shade}]}>
    <View style={[s.historyWindow,{backgroundColor:colors.panel,borderColor:colors.green}]}>
     <Text style={[s.modalHeading,{color:colors.text}]}>{title}</Text>
-    {view===null?<View style={s.historyChoices}>
+    {selected?<View style={s.historyBody}>
+     <View style={[s.historyDetail,{borderColor:colors.green,backgroundColor:colors.panel2}]}>
+      <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={[s.historyWinner,{color:colors.text}]}>{selected.winnerName}</Text>
+      <Text style={[s.muted,{color:colors.muted}]}>Date: {dateText(selected.date)}</Text>
+      <Text style={[s.muted,{color:colors.muted}]}>Tournament: {selected.tournamentName}</Text>
+      <Text style={[s.muted,{color:colors.muted}]}>Type: {selected.type==='singles'?'Singles':'Teams'}</Text>
+      <Text style={[s.muted,{color:colors.muted}]}>Bracket: {selected.bracketType?labelForBracket(selected.bracketType):'Not recorded'}</Text>
+      <Text style={[s.muted,{color:colors.muted}]}>Players: {selected.playerCount??'Not recorded'}</Text>
+      <Text style={[s.muted,{color:colors.muted}]}>Confirmed: {dateTimeText(selected.confirmedAt)}</Text>
+     </View>
+     <View style={s.modalActions}><Button title="Back" variant="secondary" onPress={()=>setSelected(null)}/><Button title="Close" variant="secondary" onPress={close}/></View>
+    </View>:view===null?<View style={s.historyChoices}>
      <Button title="Singles" onPress={()=>setView('singles')}/>
      <Button title="Teams" variant="secondary" onPress={()=>setView('teams')}/>
+     <Button title="Export History" variant="secondary" onPress={exportRows}/>
      <Button title="Close" variant="secondary" onPress={close}/>
     </View>:<View style={s.historyBody}>
      <FlatList data={rows} keyExtractor={item=>item.id} contentContainerStyle={s.savedList} ListEmptyComponent={<Text style={[s.muted,{color:colors.muted}]}>No winners saved here yet.</Text>} renderItem={({item})=><View style={[s.historyItem,{backgroundColor:colors.panel2,borderColor:colors.green}]}>
-      <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={[s.itemTitle,{color:colors.text}]}>{item.winnerName}</Text>
-      <Text style={[s.muted,{color:colors.muted}]}>{dateText(item.date)} | {item.tournamentName}</Text>
+      <Pressable onPress={()=>setSelected(item)}>
+       <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={[s.itemTitle,{color:colors.text}]}>{item.winnerName}</Text>
+       <Text style={[s.muted,{color:colors.muted}]}>{dateText(item.date)} | {item.tournamentName}</Text>
+      </Pressable>
      </View>}/>
-     <View style={s.modalActions}><Button title="Back" variant="secondary" onPress={()=>setView(null)}/><Button title="Close" variant="secondary" onPress={close}/></View>
+     <View style={s.modalActions}><Button title="Export" variant="secondary" onPress={exportRows}/><Button title="Back" variant="secondary" onPress={()=>setView(null)}/><Button title="Close" variant="secondary" onPress={close}/></View>
     </View>}
    </View>
   </View>
@@ -248,6 +273,8 @@ const s=StyleSheet.create({
  historyChoices:{padding:18,gap:10},
  historyBody:{gap:8},
  historyItem:{borderColor:theme.green,borderWidth:1,backgroundColor:'#050505',padding:12,gap:4},
+ historyDetail:{borderWidth:1,borderRadius:8,margin:18,padding:14,gap:8},
+ historyWinner:{fontSize:22,fontWeight:'900'},
  confirmWindow:{width:'100%',maxWidth:390,borderColor:theme.green,borderWidth:1,borderRadius:10,backgroundColor:'#020602',overflow:'hidden',paddingBottom:18},
  confirmText:{color:'#fff',fontSize:14,lineHeight:20,paddingHorizontal:18,paddingVertical:18},
  settingsWindow:{width:'100%',maxWidth:560,maxHeight:'86%',borderColor:theme.green,borderWidth:1,borderRadius:10,backgroundColor:'#020602',overflow:'hidden',paddingBottom:18},

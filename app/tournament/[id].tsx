@@ -1,5 +1,5 @@
 import { useEffect,useMemo,useRef,useState } from 'react';
-import { Alert, Image, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions, type GestureResponderEvent } from 'react-native';
+import { Alert, Image, Modal, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View, useWindowDimensions, type GestureResponderEvent } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTournaments } from '@/store/TournamentProvider';
 import { nextReadyMatches, recordWinner, removeResultAndDependents, resolveBracket } from '@/domain/bracket16';
@@ -7,7 +7,7 @@ import { labelForBracket, newId } from '@/domain/tournament';
 import { BracketType, MatchScore, PayoutRow, Player, ResolvedMatch, SlotSource, Tournament } from '@/domain/types';
 import { Button } from '@/components/Button';
 import { getTheme, theme } from '@/theme';
-import { openTournamentSync, realtimeConfigured, SyncStatus } from '@/store/realtime';
+import { openTournamentSync, realtimeConfigured, syncUrl, SyncStatus } from '@/store/realtime';
 import { AppSettings, eightBallSinglesRaceChart, skillLevels, useAppSettings } from '@/store/AppSettingsProvider';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -168,6 +168,18 @@ function syncStatusColor(status:SyncStatus,light:boolean){
  return light?'#8b1e1e':'#e95050';
 }
 
+function publicViewerUrl(tournament:Tournament){
+ const base=syncUrl().replace(/^wss:/,'https:').replace(/^ws:/,'http:').replace(/\/$/,'');
+ if(!base)return '';
+ return `${base}/view/${encodeURIComponent(tournament.id)}?join=${encodeURIComponent(tournament.settings.joinToken??'')}`;
+}
+
+function dateTimeText(value:string|undefined){
+ if(!value)return 'Not recorded';
+ const date=new Date(value);
+ return Number.isNaN(date.getTime())?value:date.toLocaleString();
+}
+
 function payoutRows(t:Tournament):PayoutRow[]{
  return payoutPlaces.map(place=>t.payouts?.find(row=>row.place===place)??{place,player:'',amount:''});
 }
@@ -230,6 +242,7 @@ export default function TournamentScreen(){
  const syncRef=useRef<ReturnType<typeof openTournamentSync>|null>(null);
  const [syncStatus,setSyncStatus]=useState<SyncStatus>(realtimeConfigured()?'connecting':'unconfigured');
  const [playersOpen,setPlayersOpen]=useState(false);
+ const [directorToolsOpen,setDirectorToolsOpen]=useState(false);
  const [payoutOpen,setPayoutOpen]=useState(false);
  const [scoresOpen,setScoresOpen]=useState(false);
  const [skillsOpen,setSkillsOpen]=useState(false);
@@ -433,6 +446,10 @@ const confirmWinner=()=>{
   setChampionConfirmOpen(false);
  };
  const endTournament=()=>setEndOpen(true);
+ const sharePublicViewer=async()=>{
+  const link=publicViewerUrl(t);
+  await Share.share({title:'View Tournament Bracket',message:link || 'Public viewer link is unavailable until live sync is configured.'});
+ };
  const confirmEndTournament=()=>{
   if(champion&&t.settings.confirmedWinnerId!==champion.id){
    setEndOpen(false);
@@ -440,7 +457,7 @@ const confirmWinner=()=>{
    return;
   }
   const winnerName=t.settings.confirmedWinnerName??champion?.name??'';
-  if(winnerName) addHistory({id:newId(),tournamentId:t.id,tournamentName:t.name,winnerName,type:t.settings.historyType??'singles',date:new Date().toISOString()});
+  if(winnerName) addHistory({id:newId(),tournamentId:t.id,tournamentName:t.name,winnerName,type:t.settings.historyType??'singles',date:new Date().toISOString(),bracketType:t.bracketType,playerCount:t.players.length,confirmedAt:t.settings.confirmedWinnerAt});
   save({...t,status:'complete'});
   setEndOpen(false);
   router.replace('/');
@@ -520,6 +537,7 @@ const confirmWinner=()=>{
    {!participantMode&&<Button title="Start" onPress={startTournament} disabled={t.status==='complete'}/>}
    {!participantMode&&<Button title="Save" variant="secondary" onPress={()=>save(t)}/>}
    {!participantMode&&<Button title="Payout" variant="secondary" onPress={()=>setPayoutOpen(true)}/>}
+   {!participantMode&&<Button title="Director Tools" variant="secondary" onPress={()=>setDirectorToolsOpen(true)}/>}
    <Button title="Scores" variant="secondary" onPress={()=>setScoresOpen(true)}/>
    <Button title="Skills" variant="secondary" onPress={()=>setSkillsOpen(true)}/>
    {!participantMode&&<Button title="QR" variant="secondary" onPress={()=>setQrOpen(true)}/>}
@@ -529,6 +547,7 @@ const confirmWinner=()=>{
    <Text style={[s.syncBadge,{color:syncStatusColor(syncStatus,settings.appearance==='light')}]}>Sync: {syncStatusText(syncStatus)}</Text>
    {syncStatus!=='connected'&&syncStatus!=='unconfigured'&&<Button title="Reconnect" variant="secondary" onPress={reconnectSync}/>}
   </View>}
+  {!castMode&&syncStatus!=='connected'&&<SyncRecoveryBanner status={syncStatus} reconnect={reconnectSync}/>}
   <ScrollView style={s.scroller} contentContainerStyle={[bracketScrollContent,s.bracketViewport,castMode&&s.castViewport]} scrollEnabled={!pinching&&!castMode} nestedScrollEnabled directionalLockEnabled centerContent>
    <ScrollView horizontal style={s.horizontalScroll} scrollEnabled={!pinching&&!castMode} nestedScrollEnabled directionalLockEnabled showsHorizontalScrollIndicator contentContainerStyle={[s.horizontalScroller,bracketScrollContent,castMode&&s.castViewport]}>
    <View {...pinchHandlers} style={[s.zoomSurface,scaledCanvas]}>
@@ -552,6 +571,7 @@ const confirmWinner=()=>{
   <NoticeModal visible={!!startBlocker} title="Tournament cannot start" message={startBlocker??''} close={()=>setStartBlocker(null)}/>
   <EndTournamentModal visible={endOpen} confirm={confirmEndTournament} close={()=>setEndOpen(false)}/>
   {!participantMode&&<ChampionConfirmModal visible={championConfirmOpen} championName={champion?.name??''} confirm={confirmTournamentChampion} close={closeChampionConfirm}/>}
+  {!participantMode&&<DirectorToolsModal visible={directorToolsOpen} tournament={t} syncStatus={syncStatus} championName={champion?.name??''} reconnect={reconnectSync} openQr={()=>{setDirectorToolsOpen(false);setQrOpen(true);}} openPayout={()=>{setDirectorToolsOpen(false);setPayoutOpen(true);}} openCast={()=>{setDirectorToolsOpen(false);openCastPicker();}} endTournament={()=>{setDirectorToolsOpen(false);endTournament();}} sharePublicViewer={sharePublicViewer} close={()=>setDirectorToolsOpen(false)}/>}
   <PayoutModal visible={payoutOpen} rows={payoutRows(t)} onChange={updatePayout} close={()=>setPayoutOpen(false)}/>
   <ScoresModal visible={scoresOpen} tournament={t} matches={resolved} settings={raceSettings} close={()=>setScoresOpen(false)}/>
   <SkillLevelsModal visible={skillsOpen} tournament={t} close={()=>setSkillsOpen(false)}/>
@@ -559,7 +579,7 @@ const confirmWinner=()=>{
   <WinnerModal visible={!!winnerMatch} match={winnerMatch} players={t.players} selectedId={winnerPickId} setSelectedId={setWinnerPickId} race={winnerMatch?raceTargets(t.players.find(player=>player.id===winnerMatch.playerIds[0]),t.players.find(player=>player.id===winnerMatch.playerIds[1]),raceSettings,t,winnerMatch.side):null} scores={winnerMatch?scoreFor(t.scores,winnerMatch.id):{}} director={!participantMode} onPoint={requestPoint} onScoreChange={changeScore} confirm={confirmWinner} close={()=>{setWinnerMatchId(null);setWinnerPickId(null);}}/>
   <ConfirmPointModal visible={!!pendingPoint} player={t.players.find(player=>player.id===pendingPoint?.playerId)} confirm={confirmPoint} close={()=>setPendingPoint(null)}/>
   <Modal transparent visible={qrOpen} animationType="fade" onRequestClose={()=>setQrOpen(false)}>
-   <QrModal tournament={t} syncStatus={syncStatus} reconnect={reconnectSync} close={()=>setQrOpen(false)}/>
+   <QrModal tournament={t} syncStatus={syncStatus} reconnect={reconnectSync} sharePublicViewer={sharePublicViewer} close={()=>setQrOpen(false)}/>
   </Modal>
  </View>;
 }
@@ -773,6 +793,44 @@ function CastDeviceModal({visible,status,search,useThisScreen,close}:{visible:bo
  </Modal>;
 }
 
+function SyncRecoveryBanner({status,reconnect}:{status:SyncStatus;reconnect:()=>void}){
+ const message=status==='unconfigured'
+  ? 'Live sync is not configured on this build.'
+  : status==='connecting'
+   ? 'Live sync is connecting. Changes will update when the connection returns.'
+   : 'Live sync is offline. The app is retrying automatically.';
+ return <View style={s.syncRecovery}><Text style={s.syncRecoveryText}>{message}</Text>{status!=='unconfigured'&&<Button title="Reconnect" variant="secondary" onPress={reconnect} style={s.syncRecoveryButton}/>}</View>;
+}
+
+function DirectorToolsModal({visible,tournament,syncStatus,championName,reconnect,openQr,openPayout,openCast,endTournament,sharePublicViewer,close}:{visible:boolean;tournament:Tournament;syncStatus:SyncStatus;championName:string;reconnect:()=>void;openQr:()=>void;openPayout:()=>void;openCast:()=>void;endTournament:()=>void;sharePublicViewer:()=>void;close:()=>void}){
+ const {settings}=useAppSettings();
+ const colors=getTheme(settings.appearance);
+ const viewerLink=publicViewerUrl(tournament);
+ return <Modal transparent visible={visible} animationType="fade" onRequestClose={close}>
+  <View style={[s.modalShade,{backgroundColor:colors.shade}]}>
+   <View style={[s.directorWindow,{backgroundColor:colors.panel,borderColor:colors.green}]}>
+    <View style={s.payoutHeader}><Text style={[s.payoutTitle,{color:colors.text}]}>Director Tools</Text><Pressable onPress={close}><Text style={[s.winnerClose,{color:colors.text}]}>x</Text></Pressable></View>
+    <View style={[s.directorInfo,{borderColor:colors.border,backgroundColor:colors.panel2}]}>
+     <Text style={[s.directorInfoText,{color:colors.text}]}>Sync: {syncStatusText(syncStatus)}</Text>
+     <Text style={[s.directorInfoText,{color:colors.text}]}>PIN: {tournament.settings.directorPinHash?'Set':'Missing'}</Text>
+     <Text style={[s.directorInfoText,{color:colors.text}]}>History: {tournament.settings.historyType==='teams'?'Teams':'Singles'}</Text>
+     <Text style={[s.directorInfoText,{color:colors.text}]}>Winner: {tournament.settings.confirmedWinnerName??championName??'Not confirmed'}</Text>
+     <Text style={[s.directorInfoText,{color:colors.text}]}>Confirmed: {dateTimeText(tournament.settings.confirmedWinnerAt)}</Text>
+     <Text numberOfLines={2} style={[s.directorLink,{color:colors.muted}]}>Viewer: {viewerLink||'Unavailable until live sync is configured'}</Text>
+    </View>
+    <View style={s.directorActions}>
+     <Button title="QR" onPress={openQr}/>
+     <Button title="Public View Link" variant="secondary" onPress={sharePublicViewer}/>
+     <Button title="Reconnect Sync" variant="secondary" onPress={reconnect}/>
+     <Button title="Payout" variant="secondary" onPress={openPayout}/>
+     <Button title="Cast Screen" variant="secondary" onPress={openCast}/>
+     <Button title="End Tournament" variant="danger" onPress={endTournament}/>
+    </View>
+   </View>
+  </View>
+ </Modal>;
+}
+
 function WinnerModal({visible,match,players,selectedId,setSelectedId,race,scores,director,onPoint,onScoreChange,confirm,close}:{visible:boolean;match:ResolvedMatch|undefined;players:readonly Player[];selectedId:string|null;setSelectedId:(id:string)=>void;race:{label:string;targets:readonly [number,number]}|null;scores:Record<string,number>;director:boolean;onPoint:(matchId:string,playerId:string)=>void;onScoreChange:(matchId:string,playerId:string,delta:number)=>void;confirm:()=>void;close:()=>void}){
  const {settings}=useAppSettings();
  const colors=getTheme(settings.appearance);
@@ -803,12 +861,13 @@ function WinnerModal({visible,match,players,selectedId,setSelectedId,race,scores
  </Modal>;
 }
 
-function QrModal({tournament,syncStatus,reconnect,close}:{tournament:Tournament;syncStatus:SyncStatus;reconnect:()=>void;close:()=>void}){
+function QrModal({tournament,syncStatus,reconnect,sharePublicViewer,close}:{tournament:Tournament;syncStatus:SyncStatus;reconnect:()=>void;sharePublicViewer:()=>void;close:()=>void}){
  const {settings}=useAppSettings();
  const colors=getTheme(settings.appearance);
  const joinLink=`deesplacetm:///tournament/${tournament.id}?role=participant&join=${encodeURIComponent(tournament.settings.joinToken??'')}`;
  const qrSource=`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(joinLink)}`;
- return <View style={[s.modalShade,{backgroundColor:colors.shade}]}><View style={[s.qrWindow,{backgroundColor:colors.panel,borderColor:colors.border}]}><Text style={[s.qrTitle,{color:colors.text}]}>Join Tournament</Text><Image source={{uri:qrSource}} style={s.qrImage}/><Text style={s.qrCode}>{tournament.id.slice(0,10).toUpperCase()}</Text><Text style={[s.muted,{color:colors.muted}]}>Only this director QR can join this tournament. Players open in participant mode and can submit match winners.</Text><Text style={[syncStatus==='connected'?s.syncReady:s.syncWarning,{color:syncStatusColor(syncStatus,settings.appearance==='light')}]}>{syncStatus==='connected'?'Sync: Online':`Sync: ${syncStatusText(syncStatus)}`}</Text>{syncStatus!=='connected'&&syncStatus!=='unconfigured'&&<Button title="Reconnect" onPress={reconnect}/>}<Button title="Close" variant="secondary" onPress={close}/></View></View>;
+ const viewerLink=publicViewerUrl(tournament);
+ return <View style={[s.modalShade,{backgroundColor:colors.shade}]}><View style={[s.qrWindow,{backgroundColor:colors.panel,borderColor:colors.border}]}><Text style={[s.qrTitle,{color:colors.text}]}>Join Tournament</Text><Image source={{uri:qrSource}} style={s.qrImage}/><Text style={s.qrCode}>{tournament.id.slice(0,10).toUpperCase()}</Text><Text style={[s.muted,{color:colors.muted}]}>Only this director QR can join this tournament. Players open in participant mode and can submit match winners.</Text><Text style={[syncStatus==='connected'?s.syncReady:s.syncWarning,{color:syncStatusColor(syncStatus,settings.appearance==='light')}]}>{syncStatus==='connected'?'Sync: Online':`Sync: ${syncStatusText(syncStatus)}`}</Text><Text numberOfLines={2} style={[s.viewerLink,{color:colors.muted}]}>View-only link: {viewerLink||'Unavailable until live sync is configured'}</Text>{syncStatus!=='connected'&&syncStatus!=='unconfigured'&&<Button title="Reconnect" onPress={reconnect}/>}<Button title="Share View Link" variant="secondary" onPress={sharePublicViewer}/><Button title="Close" variant="secondary" onPress={close}/></View></View>;
 }
 
 type ReadyColor='red'|'green'|'gold';
@@ -1070,6 +1129,9 @@ const s=StyleSheet.create({
  castTitle:{color:'#fff',fontSize:16,fontWeight:'900',flex:1},
  participantBadge:{backgroundColor:'#061206',borderColor:theme.green,borderWidth:1,color:'#fff',fontSize:12,fontWeight:'900',paddingHorizontal:10,paddingVertical:7},
  syncBadge:{color:'#111',fontSize:12,fontWeight:'800',paddingHorizontal:8},
+ syncRecovery:{backgroundColor:'#1b1200',borderBottomColor:'#e0aa45',borderBottomWidth:1,paddingHorizontal:10,paddingVertical:8,flexDirection:'row',alignItems:'center',gap:10},
+ syncRecoveryText:{color:'#ffd889',fontSize:12,fontWeight:'900',flex:1},
+ syncRecoveryButton:{minHeight:32},
  scroller:{flex:1},
  horizontalScroll:{width:'100%',flexGrow:0},
  bracketViewport:{paddingTop:18},
@@ -1165,6 +1227,11 @@ const s=StyleSheet.create({
  startActions:{flexDirection:'row',gap:8,justifyContent:'space-between'},
  startButton:{flex:1,minHeight:36,borderRadius:0},
  payoutWindow:{width:'100%',maxWidth:430,backgroundColor:'#000',borderColor:theme.green,borderWidth:1,borderRadius:10,padding:14,gap:12},
+ directorWindow:{width:'100%',maxWidth:430,backgroundColor:'#000',borderColor:theme.green,borderWidth:1,borderRadius:10,padding:14,gap:12},
+ directorInfo:{borderWidth:1,borderRadius:8,padding:10,gap:6},
+ directorInfoText:{fontSize:12,fontWeight:'800'},
+ directorLink:{fontSize:11,lineHeight:16},
+ directorActions:{gap:8},
  payoutHeader:{flexDirection:'row',alignItems:'center',justifyContent:'space-between'},
  payoutTitle:{color:'#fff',fontSize:18,fontWeight:'900'},
  payoutTable:{borderColor:theme.green,borderWidth:1,borderRadius:6,overflow:'hidden'},
@@ -1223,6 +1290,7 @@ const s=StyleSheet.create({
  qrImage:{width:180,height:180,alignSelf:'center',backgroundColor:'#fff'},
  qrBox:{width:180,height:180,alignSelf:'center',backgroundColor:'#fff',alignItems:'center',justifyContent:'center'},
  qrCode:{color:'#000',fontSize:20,fontWeight:'900'},
+ viewerLink:{fontSize:11,lineHeight:16},
  syncReady:{color:theme.green,fontSize:12,fontWeight:'800'},
  syncWarning:{color:'#e0aa45',fontSize:12,fontWeight:'800'},
  muted:{color:'#bbb',fontSize:12}

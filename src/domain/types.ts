@@ -57,6 +57,9 @@ export interface TournamentHistoryEntry {
   winnerName: string;
   type: TournamentHistoryType;
   date: string;
+  bracketType?: BracketType;
+  playerCount?: number;
+  confirmedAt?: string;
 }
 
 export interface Tournament {

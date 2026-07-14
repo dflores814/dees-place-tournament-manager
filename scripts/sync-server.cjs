@@ -20,7 +20,86 @@ function subscribersFor(tournamentId) {
   return subscribers.get(tournamentId);
 }
 
+function escapeHtml(value) {
+  return String(value || '').replace(/[&<>"']/g, character => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[character]));
+}
+
+function viewerPage(tournamentId, joinToken) {
+  const safeTournamentId = escapeHtml(tournamentId);
+  const safeJoinToken = escapeHtml(joinToken || '');
+  return `<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Dee's Place Tournament Viewer</title>
+<style>
+body{margin:0;background:#020602;color:#f7fbff;font-family:Arial,sans-serif}
+main{max-width:980px;margin:0 auto;padding:18px}
+.top{border:1px solid #5fea28;border-radius:10px;padding:14px;margin-bottom:14px;background:#061206}
+h1{margin:0 0 6px;font-size:24px}
+.muted{color:#b8cbb8;font-size:13px}
+.status{color:#5fea28;font-weight:900}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.card{border:1px solid #254225;border-radius:8px;background:#000;padding:12px}
+.title{font-weight:900;color:#5fea28;margin-bottom:8px}
+.row{border-top:1px solid #263326;padding:8px 0;font-size:14px}
+.winner{color:#e0aa45;font-weight:900}
+</style>
+</head>
+<body>
+<main>
+<section class="top">
+<h1 id="name">Dee's Place Tournament</h1>
+<div class="muted">Live view-only bracket</div>
+<div id="status" class="status">Connecting...</div>
+</section>
+<section class="grid">
+<div class="card"><div class="title">Players</div><div id="players"></div></div>
+<div class="card"><div class="title">Matches</div><div id="matches"></div></div>
+<div class="card"><div class="title">Winner</div><div id="winner" class="winner">Not confirmed yet</div></div>
+</section>
+</main>
+<script>
+const tournamentId=${JSON.stringify(tournamentId)};
+const joinToken=${JSON.stringify(joinToken || '')};
+let reconnectTimer=null;
+function byId(list,id){return (list||[]).find(item=>item.id===id)}
+function draw(t){
+ document.getElementById('name').textContent=t.name||'Dee\\'s Place Tournament';
+ document.getElementById('players').innerHTML=(t.players||[]).slice().sort((a,b)=>a.seed-b.seed).map(p=>'<div class="row">'+p.seed+'. '+escape(p.name)+'</div>').join('')||'<div class="muted">No players yet.</div>';
+ document.getElementById('matches').innerHTML=(t.results||[]).map(r=>'<div class="row">Match '+escape(r.matchId)+': <span class="winner">'+escape(byId(t.players,r.winnerId)?.name||'Winner')+'</span></div>').join('')||'<div class="muted">No completed matches yet.</div>';
+ document.getElementById('winner').textContent=t.settings?.confirmedWinnerName||'Not confirmed yet';
+}
+function escape(value){return String(value||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function connect(){
+ const protocol=location.protocol==='https:'?'wss:':'ws:';
+ const socket=new WebSocket(protocol+'//'+location.host);
+ socket.onopen=()=>{document.getElementById('status').textContent='Live';socket.send(JSON.stringify({type:'subscribe',tournamentId,joinToken}))};
+ socket.onmessage=event=>{try{const message=JSON.parse(event.data);if(message.tournament)draw(message.tournament)}catch{}};
+ socket.onerror=()=>{document.getElementById('status').textContent='Offline'};
+ socket.onclose=()=>{document.getElementById('status').textContent='Reconnecting...';clearTimeout(reconnectTimer);reconnectTimer=setTimeout(connect,2000)};
+}
+connect();
+</script>
+</body>
+</html>`;
+}
+
 const httpServer = http.createServer((request, response) => {
+  const url = new URL(request.url || '/', `http://${request.headers.host || 'localhost'}`);
+  const viewMatch = url.pathname.match(/^\/view\/([^/]+)$/);
+  if (viewMatch) {
+    response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+    response.end(viewerPage(decodeURIComponent(viewMatch[1]), url.searchParams.get('join')));
+    return;
+  }
   response.writeHead(200, { 'content-type': 'text/plain' });
   response.end("Dee's Place live sync server OK");
 });
