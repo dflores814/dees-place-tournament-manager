@@ -531,21 +531,21 @@ const confirmWinner=()=>{
   minHeight:Math.max(bracketViewport.minHeight,scaledCanvas.height+96)
  };
  return <View style={[s.page,{backgroundColor:colors.bg}]}>
-  {!castMode&&<View style={[s.toolbar,{backgroundColor:settings.appearance==='light'?'#f3f8ef':'#efefef',paddingTop:insets.top+10}]}>
-   <Button title="Home" variant="secondary" onPress={()=>router.replace('/')}/>
-   {!participantMode&&<Button title="Players" variant="secondary" onPress={()=>openPlayers()}/>}
-   {!participantMode&&<Button title="Start" onPress={startTournament} disabled={t.status==='complete'}/>}
-   {!participantMode&&<Button title="Save" variant="secondary" onPress={()=>save(t)}/>}
-   {!participantMode&&<Button title="Payout" variant="secondary" onPress={()=>setPayoutOpen(true)}/>}
-   {!participantMode&&<Button title="Director Tools" variant="secondary" onPress={()=>setDirectorToolsOpen(true)}/>}
-   <Button title="Scores" variant="secondary" onPress={()=>setScoresOpen(true)}/>
-   <Button title="Skills" variant="secondary" onPress={()=>setSkillsOpen(true)}/>
-   {!participantMode&&<Button title="QR" variant="secondary" onPress={()=>setQrOpen(true)}/>}
-   {!participantMode&&<Button title="Cast Screen" variant="secondary" onPress={openCastPicker}/>}
-   {!participantMode&&<Button title="End Tournament" variant="danger" onPress={endTournament}/>}
+  {!castMode&&<View style={[s.toolbar,{paddingTop:insets.top+10}]}>
+   <Button title="⌂" variant="secondary" onPress={()=>router.replace('/')} style={s.toolbarButton} textStyle={s.toolbarIconText}/>
+   {!participantMode&&<Button title="♙" variant="secondary" onPress={()=>openPlayers()} style={s.toolbarButton} textStyle={s.toolbarIconText}/>}
+   {!participantMode&&<Button title="▶" onPress={startTournament} disabled={t.status==='complete'} style={[s.toolbarButton,s.toolbarPrimaryButton]} textStyle={s.toolbarIconText}/>}
+   {!participantMode&&<Button title="▣" variant="secondary" onPress={()=>save(t)} style={s.toolbarButton} textStyle={s.toolbarIconText}/>}
+   {!participantMode&&<Button title="$" variant="secondary" onPress={()=>setPayoutOpen(true)} style={s.toolbarButton} textStyle={s.toolbarIconText}/>}
+   {!participantMode&&<Button title="⚙" variant="secondary" onPress={()=>setDirectorToolsOpen(true)} style={s.toolbarButton} textStyle={s.toolbarIconText}/>}
+   <Button title="#" variant="secondary" onPress={()=>setScoresOpen(true)} style={s.toolbarButton} textStyle={s.toolbarIconText}/>
+   <Button title="★" variant="secondary" onPress={()=>setSkillsOpen(true)} style={s.toolbarButton} textStyle={s.toolbarIconText}/>
+   {!participantMode&&<Button title="▦" variant="secondary" onPress={()=>setQrOpen(true)} style={s.toolbarButton} textStyle={s.toolbarIconText}/>}
+   {!participantMode&&<Button title="⛶" variant="secondary" onPress={openCastPicker} style={s.toolbarButton} textStyle={s.toolbarIconText}/>}
+   {!participantMode&&<Button title="×" variant="danger" onPress={endTournament} style={[s.toolbarButton,s.toolbarDangerButton]} textStyle={s.toolbarIconText}/>}
    {participantMode&&<Text style={s.participantBadge}>Participant mode</Text>}
    <Text style={[s.syncBadge,{color:syncStatusColor(syncStatus,settings.appearance==='light')}]}>Sync: {syncStatusText(syncStatus)}</Text>
-   {syncStatus!=='connected'&&syncStatus!=='unconfigured'&&<Button title="Reconnect" variant="secondary" onPress={reconnectSync}/>}
+   {syncStatus!=='connected'&&syncStatus!=='unconfigured'&&<Button title="↻" variant="secondary" onPress={reconnectSync} style={s.toolbarButton} textStyle={s.toolbarIconText}/>}
   </View>}
   {!castMode&&syncStatus!=='connected'&&<SyncRecoveryBanner status={syncStatus} reconnect={reconnectSync}/>}
   <ScrollView style={s.scroller} contentContainerStyle={[bracketScrollContent,s.bracketViewport,castMode&&s.castViewport]} scrollEnabled={!pinching&&!castMode} nestedScrollEnabled directionalLockEnabled centerContent>
@@ -1124,11 +1124,15 @@ function BracketBox({tournament,match,ready,onWinner,onEdit,onBye,director,ready
 
 const s=StyleSheet.create({
  page:{flex:1,backgroundColor:'#000'},
- toolbar:{minHeight:26,backgroundColor:'#efefef',flexDirection:'row',alignItems:'center',gap:8,paddingHorizontal:6,paddingBottom:10,flexWrap:'wrap',borderBottomColor:'#c9d1c6',borderBottomWidth:1},
+ toolbar:{minHeight:26,backgroundColor:'rgba(0,0,0,.92)',flexDirection:'row',alignItems:'center',gap:7,paddingHorizontal:8,paddingBottom:8,flexWrap:'wrap',borderBottomColor:'rgba(95,234,40,.22)',borderBottomWidth:1},
+ toolbarButton:{width:40,minHeight:38,paddingHorizontal:0,paddingVertical:0,borderRadius:8,backgroundColor:'#061206',borderColor:'rgba(95,234,40,.55)'},
+ toolbarPrimaryButton:{backgroundColor:theme.green,borderColor:theme.green},
+ toolbarDangerButton:{backgroundColor:'#d94f54',borderColor:'#d94f54'},
+ toolbarIconText:{fontSize:19,lineHeight:22,fontWeight:'900'},
  castBar:{minHeight:38,backgroundColor:'#061206',borderBottomColor:theme.green,borderBottomWidth:1,flexDirection:'row',alignItems:'center',justifyContent:'space-between',paddingHorizontal:10,gap:10},
  castTitle:{color:'#fff',fontSize:16,fontWeight:'900',flex:1},
  participantBadge:{backgroundColor:'#061206',borderColor:theme.green,borderWidth:1,color:'#fff',fontSize:12,fontWeight:'900',paddingHorizontal:10,paddingVertical:7},
- syncBadge:{color:'#111',fontSize:12,fontWeight:'800',paddingHorizontal:8},
+ syncBadge:{color:theme.green,fontSize:12,fontWeight:'900',paddingHorizontal:8},
  syncRecovery:{backgroundColor:'#1b1200',borderBottomColor:'#e0aa45',borderBottomWidth:1,paddingHorizontal:10,paddingVertical:8,flexDirection:'row',alignItems:'center',gap:10},
  syncRecoveryText:{color:'#ffd889',fontSize:12,fontWeight:'900',flex:1},
  syncRecoveryButton:{minHeight:32},
