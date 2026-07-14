@@ -343,6 +343,7 @@ export default function TournamentScreen(){
   setStartOpen(false);
  };
  const chooseWinner=(match:ResolvedMatch)=>{
+  if(participantMode&&t.status!=='active'){Alert.alert('Tournament not started','The tournament director must press Start before joined devices can report winners or scores.');return;}
   if(participantMode&&settings.participantPermission==='view-only'){Alert.alert('View only','This device can view the bracket but cannot report winners.');return;}
   if(participantMode&&match.complete){Alert.alert('Match complete','Only the tournament director can correct a completed match.');return;}
   if(participantMode&&!match.ready)return;
@@ -354,6 +355,7 @@ export default function TournamentScreen(){
 const confirmWinner=()=>{
  if(!winnerMatch || !winnerPickId)return;
  if(participantMode&&(!winnerMatch.ready||winnerMatch.complete))return;
+ if(participantMode&&t.status!=='active'){Alert.alert('Tournament not started','The tournament director must press Start before joined devices can report winners.');return;}
  const playerA=t.players.find(player=>player.id===winnerMatch.playerIds[0]);
  const playerB=t.players.find(player=>player.id===winnerMatch.playerIds[1]);
  const race=raceTargets(playerA,playerB,raceSettings,t,winnerMatch.side);
@@ -370,6 +372,7 @@ const confirmWinner=()=>{
  };
  const requestPoint=(matchId:string,playerId:string)=>{
   const match=resolved.find(item=>item.id===matchId);
+  if(participantMode&&t.status!=='active'){Alert.alert('Tournament not started','The tournament director must press Start before joined devices can change scores.');return;}
   if(participantMode&&settings.participantPermission==='view-only'){Alert.alert('View only','This device can view the bracket but cannot change scores.');return;}
   if(!match||!match.ready||match.complete)return;
   const playerA=t.players.find(player=>player.id===match.playerIds[0]);
